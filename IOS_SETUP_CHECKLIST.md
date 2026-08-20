@@ -7,6 +7,8 @@ Já feito (sem precisar de Mac):
 - [x] Permissões de câmera e galeria adicionadas no `Info.plist`
 - [x] "Sign in with Apple" implementado no código (`login_controller.dart`/`login_view.dart`) — obrigatório pela Apple porque o app já oferece login com Google
 - [x] `ios/Runner/Runner.entitlements` criado com a permissão de Apple Sign In (ainda precisa ser linkado no Xcode, ver abaixo)
+- [x] Git iniciado nos dois projetos e enviados para o GitHub (`vetvemaplicativo/vetvem` e `vetvemaplicativo/vetvem-pro`)
+- [x] Build de teste no Codemagic (simulador iOS, sem assinatura) — **passou sem erros** ✅ (confirma que o projeto compila para iOS)
 
 Falta fazer (precisa de Mac + Xcode):
 - [ ] Concluir e pagar a inscrição no Apple Developer Program (US$99/ano) — cadastro já iniciado
