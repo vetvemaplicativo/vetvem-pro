@@ -257,7 +257,10 @@ class HomeController extends GetxController {
   final paidLastMonth = 0.obs; // define a taxa deste mês
   final paidThisMonth = 0.obs; // define a taxa do mês que vem
 
-  // Faixas ordenadas por min crescente; default = fallback da function
+  // Faixas ordenadas por min crescente — usadas só como fallback enquanto
+  // config/fees não carrega (a taxa real sempre vem do Firestore).
+  // IMPORTANTE: mesmo fallback existe em functions/index.js (DEFAULT_TIERS)
+  // — mudanças aqui precisam ser replicadas lá.
   final feeTiers = <Map<String, int>>[
     {'min': 0, 'pct': 15},
     {'min': 10, 'pct': 12},
