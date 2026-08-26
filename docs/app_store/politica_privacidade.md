@@ -1,6 +1,9 @@
 # Política de Privacidade — VetVem Pro
 
-*Rascunho — revisar antes de publicar. Hospedar como página pública (ex: vetvem.com.br/privacidade-pro) antes de preencher o link na App Store Connect.*
+**SUPERADO — não precisa publicar isto.** O site já tem uma política de
+privacidade completa e no ar em https://vetvem.com.br/privacidade, cobrindo
+tutores e profissionais. Use essa URL direto na App Store Connect. Rascunho
+abaixo mantido só de referência histórica.
 
 **Última atualização:** [preencher data]
 

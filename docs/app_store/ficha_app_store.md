@@ -43,10 +43,13 @@ e avaliações em um só app.
 ```
 
 ## URL de suporte
-[preencher — pode ser vetvem.com.br/suporte ou um e-mail]
+[preencher — pode ser vetvem.com.br/contato ou o e-mail contato@vetvem.com.br]
 
 ## URL de marketing (opcional)
 vetvem.com.br
+
+## URL da política de privacidade
+https://vetvem.com.br/privacidade — já publicada e cobre tutores e profissionais (CPF, registro CRMV, dados bancários, avaliações). Não precisa criar página nova.
 
 ## Screenshots necessários
 - iPhone 6.9" (obrigatório) — telas: login, agenda, detalhe do atendimento, perfil

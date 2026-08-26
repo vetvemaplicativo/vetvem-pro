@@ -9,6 +9,8 @@ Já feito (sem precisar de Mac):
 - [x] `ios/Runner/Runner.entitlements` criado com a permissão de Apple Sign In (ainda precisa ser linkado no Xcode, ver abaixo)
 - [x] Git iniciado nos dois projetos e enviados para o GitHub (`vetvemaplicativo/vetvem` e `vetvemaplicativo/vetvem-pro`)
 - [x] Build de teste no Codemagic (simulador iOS, sem assinatura) — **passou sem erros** ✅ (confirma que o projeto compila para iOS)
+- [x] Política de privacidade — já existe e está no ar em https://vetvem.com.br/privacidade (cobre tutores e profissionais), usar essa URL direto na App Store Connect
+- [x] Rascunhos de ficha da loja e formulário de App Privacy em `docs/app_store/`
 
 Falta fazer (precisa de Mac + Xcode):
 - [ ] Concluir e pagar a inscrição no Apple Developer Program (US$99/ano) — cadastro já iniciado
