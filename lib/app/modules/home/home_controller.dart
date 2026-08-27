@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../data/models/service_area_model.dart';
 import '../../routes/app_routes.dart';
+import '../../services/analytics_service.dart';
 import '../../services/notification_service.dart';
 import 'package:flutter/material.dart'
     show
@@ -694,6 +695,7 @@ class HomeController extends GetxController {
       updates['paymentStatus'] = 'pending_payment';
     }
     await _firestore.collection('appointments').doc(id).update(updates);
+    Get.find<AnalyticsService>().logAppointmentConfirmed(id);
     final tutorId = d['tutorId'] as String?;
     if (tutorId != null) {
       await NotificationService.sendTo(
@@ -717,6 +719,7 @@ class HomeController extends GetxController {
       'status': 'rejected',
       'rejectedAt': FieldValue.serverTimestamp(),
     });
+    Get.find<AnalyticsService>().logAppointmentRejected(id);
     final tutorId = d['tutorId'] as String?;
     if (tutorId != null) {
       await NotificationService.sendTo(
@@ -789,6 +792,7 @@ class HomeController extends GetxController {
       'status': 'completed',
       'completedAt': FieldValue.serverTimestamp(),
     });
+    Get.find<AnalyticsService>().logAppointmentCompleted(id);
     // Notifica o próprio veterinário sobre o repasse D+2
     final uid = _auth.currentUser?.uid;
     if (uid != null) {
