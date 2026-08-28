@@ -16,10 +16,12 @@ Falta fazer (precisa de Mac + Xcode):
 - [x] Conta Apple Developer paga e aprovada (2026-08-27)
 - [x] App ID `com.vetvem.vetvemPro` registrado no developer.apple.com com **Push Notifications** e **Sign In with Apple** habilitados
 - [x] Chave APNs criada (Key ID `3T22X4M94W`, Team ID `X3K2T22232`, ambiente Sandbox & Production) e enviada ao Firebase Console → Cloud Messaging (dev + produção)
-- [ ] Abrir `ios/Runner.xcworkspace` no Xcode (não o `.xcodeproj`)
-- [ ] Rodar `flutter pub get` e `pod install` (gera o `Podfile.lock`)
-- [ ] Configurar assinatura (Signing & Capabilities → selecionar o Team da Apple Developer)
-- [ ] Em Signing & Capabilities, clicar em "+ Capability" → **Sign in with Apple** e **Push Notifications** (o Xcode vai usar o `Runner.entitlements` já pronto)
+- [x] Build assinado real gerado com sucesso no Codemagic (certificado "Apple Distribution" + perfil de provisionamento App Store, ambos criados manualmente e carregados nas Code Signing Identities da conta Codemagic — a criação automática via API deu erro persistente, ver nota abaixo)
+- [ ] Testar o `.ipa` num iPhone físico (via TestFlight) antes de submeter pra revisão
+- [ ] Preencher a ficha completa na App Store Connect (screenshots, descrição — rascunhos em `docs/app_store/`)
+- [ ] Enviar build para o TestFlight e depois para revisão da Apple
+
+**Nota técnica**: `app-store-connect fetch-signing-files --create` do Codemagic falhou repetidamente com "Cannot save Signing Certificates without certificate private key", mesmo com chave individual e keychain inicializado. Contornado gerando CSR localmente (openssl), criando o certificado "Apple Distribution" manualmente no developer.apple.com, e subindo o `.p12` resultante + os perfis `.mobileprovision` (um por bundle ID) direto em Codemagic → Settings → Code signing identities. O `codemagic.yaml` usa o bloco `ios_signing` simples (sem fetch-signing-files).
 - [ ] Rodar `flutter build ipa` e ver se builda sem erro (corrigir o que aparecer — normal ter 1-2 ajustes na primeira vez)
 - [ ] Testar em um iPhone físico ou simulador antes de submeter
 - [ ] Preencher ficha do app na App Store Connect (screenshots, descrição, política de privacidade — obrigatória por causa de login e dados de localização)
