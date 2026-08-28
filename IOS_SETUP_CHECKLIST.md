@@ -13,14 +13,13 @@ Já feito (sem precisar de Mac):
 - [x] Rascunhos de ficha da loja e formulário de App Privacy em `docs/app_store/`
 
 Falta fazer (precisa de Mac + Xcode):
-- [ ] Concluir e pagar a inscrição no Apple Developer Program (US$99/ano) — cadastro já iniciado
+- [x] Conta Apple Developer paga e aprovada (2026-08-27)
+- [x] App ID `com.vetvem.vetvemPro` registrado no developer.apple.com com **Push Notifications** e **Sign In with Apple** habilitados
+- [x] Chave APNs criada (Key ID `3T22X4M94W`, Team ID `X3K2T22232`, ambiente Sandbox & Production) e enviada ao Firebase Console → Cloud Messaging (dev + produção)
 - [ ] Abrir `ios/Runner.xcworkspace` no Xcode (não o `.xcodeproj`)
 - [ ] Rodar `flutter pub get` e `pod install` (gera o `Podfile.lock`)
 - [ ] Configurar assinatura (Signing & Capabilities → selecionar o Team da Apple Developer)
-- [ ] Em Signing & Capabilities, clicar em "+ Capability" → **Sign in with Apple** (o Xcode vai usar o `Runner.entitlements` que já deixei pronto e ligar ele ao projeto sozinho)
-- [ ] No developer.apple.com, no App ID `com.vetvem.vetvemPro`, habilitar a capability "Sign In with Apple" (só aparece depois do pagamento da conta)
-- [ ] Habilitar a capability **Push Notifications** no Xcode (usada pelo `firebase_messaging`)
-- [ ] Gerar uma chave APNs (Apple Push Notification) em developer.apple.com e subir no Firebase Console → Project Settings → Cloud Messaging
+- [ ] Em Signing & Capabilities, clicar em "+ Capability" → **Sign in with Apple** e **Push Notifications** (o Xcode vai usar o `Runner.entitlements` já pronto)
 - [ ] Rodar `flutter build ipa` e ver se builda sem erro (corrigir o que aparecer — normal ter 1-2 ajustes na primeira vez)
 - [ ] Testar em um iPhone físico ou simulador antes de submeter
 - [ ] Preencher ficha do app na App Store Connect (screenshots, descrição, política de privacidade — obrigatória por causa de login e dados de localização)
