@@ -194,8 +194,9 @@ class LoginController extends GetxController {
 
       _analytics.logLogin('google');
       Get.offAllNamed(Routes.home);
-    } catch (_) {
-      _snackError('Não foi possível entrar com Google. Tente novamente.');
+    } catch (e) {
+      // TODO: mensagem de diagnostico temporaria - reverter apos achar a causa
+      _snackError('Erro (Google): $e');
     } finally {
       isLoading.value = false;
     }
@@ -272,10 +273,12 @@ class LoginController extends GetxController {
       Get.offAllNamed(Routes.home);
     } on SignInWithAppleAuthorizationException catch (e) {
       if (e.code != AuthorizationErrorCode.canceled) {
-        _snackError('Não foi possível entrar com Apple. Tente novamente.');
+        // TODO: mensagem de diagnostico temporaria - reverter apos achar a causa
+        _snackError('Erro (Apple auth): ${e.code} ${e.message}');
       }
-    } catch (_) {
-      _snackError('Não foi possível entrar com Apple. Tente novamente.');
+    } catch (e) {
+      // TODO: mensagem de diagnostico temporaria - reverter apos achar a causa
+      _snackError('Erro (Apple): $e');
     } finally {
       isLoading.value = false;
     }
@@ -319,7 +322,7 @@ class LoginController extends GetxController {
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       borderRadius: 14,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      duration: const Duration(seconds: 3),
+      duration: const Duration(seconds: 15), // TODO: diagnostico temporario
       icon: Container(
         width: 36, height: 36,
         decoration: BoxDecoration(
@@ -347,7 +350,7 @@ class LoginController extends GetxController {
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       borderRadius: 14,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      duration: const Duration(seconds: 3),
+      duration: const Duration(seconds: 15), // TODO: diagnostico temporario
       icon: Container(
         width: 36, height: 36,
         decoration: BoxDecoration(
