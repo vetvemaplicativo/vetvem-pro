@@ -17,14 +17,18 @@ Falta fazer (precisa de Mac + Xcode):
 - [x] App ID `com.vetvem.vetvemPro` registrado no developer.apple.com com **Push Notifications** e **Sign In with Apple** habilitados
 - [x] Chave APNs criada (Key ID `3T22X4M94W`, Team ID `X3K2T22232`, ambiente Sandbox & Production) e enviada ao Firebase Console → Cloud Messaging (dev + produção)
 - [x] Build assinado real gerado com sucesso no Codemagic (certificado "Apple Distribution" + perfil de provisionamento App Store, ambos criados manualmente e carregados nas Code Signing Identities da conta Codemagic — a criação automática via API deu erro persistente, ver nota abaixo)
-- [ ] Testar o `.ipa` num iPhone físico (via TestFlight) antes de submeter pra revisão
+- [x] `GoogleService-Info.plist` incluído de verdade no bundle do app (existia no disco mas não estava referenciado no `project.pbxproj` — Firebase nunca inicializava no iOS, causava tela travada)
+- [x] `CODE_SIGN_ENTITLEMENTS` linkado no `project.pbxproj` (o `Runner.entitlements` existia mas não estava aplicado ao build — Sign in with Apple falhava)
+- [x] URL Scheme do Google Sign-In adicionado no `Info.plist` (obrigatório no iOS, ausência causava fechamento do app ao tentar logar com Google)
+- [x] Ícones iOS sem canal alpha (exigência da Apple pro ícone de 1024×1024)
+- [x] Provedor "Apple" habilitado no Firebase Console → Authentication → Sign-in method (não bastava configurar só do lado da Apple)
+- [x] `OAuthProvider('apple.com').credential(...)` corrigido — faltava passar `accessToken: appleCredential.authorizationCode` além do `idToken`, causava `invalid-credential`
+- [x] **Sign in with Apple e Google testados com sucesso nos dois apps, de ponta a ponta, em iPhone físico via TestFlight** ✅ (2026-09-04)
+- [ ] Testar o restante do fluxo (agendamentos, notificações push) em iPhone físico
 - [ ] Preencher a ficha completa na App Store Connect (screenshots, descrição — rascunhos em `docs/app_store/`)
-- [ ] Enviar build para o TestFlight e depois para revisão da Apple
+- [ ] Preencher "Beta App Information" e "Beta App Review Information" no TestFlight (necessário pra testadores externos e pra submissão final)
+- [ ] Enviar build para revisão da Apple
 
-**Nota técnica**: `app-store-connect fetch-signing-files --create` do Codemagic falhou repetidamente com "Cannot save Signing Certificates without certificate private key", mesmo com chave individual e keychain inicializado. Contornado gerando CSR localmente (openssl), criando o certificado "Apple Distribution" manualmente no developer.apple.com, e subindo o `.p12` resultante + os perfis `.mobileprovision` (um por bundle ID) direto em Codemagic → Settings → Code signing identities. O `codemagic.yaml` usa o bloco `ios_signing` simples (sem fetch-signing-files).
-- [ ] Rodar `flutter build ipa` e ver se builda sem erro (corrigir o que aparecer — normal ter 1-2 ajustes na primeira vez)
-- [ ] Testar em um iPhone físico ou simulador antes de submeter
-- [ ] Preencher ficha do app na App Store Connect (screenshots, descrição, política de privacidade — obrigatória por causa de login e dados de localização)
-- [ ] Submeter para revisão da Apple
+**Nota técnica (assinatura)**: `app-store-connect fetch-signing-files --create` do Codemagic falhou repetidamente com "Cannot save Signing Certificates without certificate private key", mesmo com chave individual e keychain inicializado. Contornado gerando CSR localmente (openssl), criando o certificado "Apple Distribution" manualmente no developer.apple.com, e subindo o `.p12` resultante + os perfis `.mobileprovision` (um por bundle ID) direto em Codemagic → Settings → Code signing identities. O `codemagic.yaml` usa o bloco `ios_signing` simples (sem fetch-signing-files). A chave da App Store Connect usada pra **publicar** (`integrations.app_store_connect`) precisa ser a de **equipe** ("VetVem"), não a individual — a individual dava 401 nas chamadas de API de listagem/upload.
 
 Alternativa sem Mac próprio: usar **Codemagic** (codemagic.io) conectando o repositório — ele builda, assina e pode até publicar direto, tudo em macOS na nuvem.
