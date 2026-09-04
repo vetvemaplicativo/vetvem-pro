@@ -177,9 +177,10 @@ class LoginController extends GetxController {
         return;
       }
 
-      // Primeiro login — cria documento como profissional
-      if (!doc.exists) {
-        // merge: preserva o aceite dos termos gravado pelo gate acima
+      // Primeiro login — cria o perfil de profissional. Checa 'role' (não
+      // doc.exists) porque um doc parcial pode já existir sem perfil
+      // completo (ex.: gate de termos gravou algo antes de o login terminar).
+      if (doc.data()?['role'] == null) {
         await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
@@ -255,8 +256,10 @@ class LoginController extends GetxController {
         return;
       }
 
-      // Primeiro login — cria documento como profissional
-      if (!doc.exists) {
+      // Primeiro login — cria o perfil de profissional. Checa 'role' (não
+      // doc.exists) porque um doc parcial pode já existir sem perfil
+      // completo (ex.: gate de termos gravou algo antes de o login terminar).
+      if (doc.data()?['role'] == null) {
         await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
