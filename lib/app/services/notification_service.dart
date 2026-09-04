@@ -35,6 +35,7 @@ class NotificationService {
     await _fln.initialize(
       const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/launcher_icon'),
+        iOS: DarwinInitializationSettings(),
       ),
       // Toque na notificação local (app em foreground)
       onDidReceiveNotificationResponse: (resp) {
@@ -44,6 +45,14 @@ class NotificationService {
     );
 
     await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // Mostra o banner/som quando o app está em primeiro plano no iOS
+    // (por padrão o iOS silencia notificações com o app aberto).
+    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
       alert: true,
       badge: true,
       sound: true,
