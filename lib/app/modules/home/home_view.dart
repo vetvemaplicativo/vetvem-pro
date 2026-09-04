@@ -8,6 +8,7 @@ import '../../routes/app_routes.dart';
 import '../../services/taxonomy_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shimmer.dart';
+import '../auth/register/register_controller.dart' show RegisterController;
 import 'home_controller.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -2654,6 +2655,8 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
   late TextEditingController _crmvCtrl;
   late List<String> _selectedSpecies;
   late List<String> _selectedCategories;
+  late Set<String> _selectedDays;
+  late List<String> _selectedTimes;
 
   @override
   void initState() {
@@ -2665,6 +2668,8 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
     _crmvCtrl = TextEditingController(text: c.professionalCrmv.value);
     _selectedSpecies = List<String>.from(c.animalSpecies);
     _selectedCategories = List<String>.from(c.professionalCategories);
+    _selectedDays = Set<String>.from(c.professionalDays);
+    _selectedTimes = List<String>.from(c.professionalTimes);
   }
 
   @override
@@ -2777,6 +2782,99 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                 }).toList(),
               ),
               const SizedBox(height: 20),
+              const Text('Dias disponíveis',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: RegisterController.allDays.map((day) {
+                  final selected = _selectedDays.contains(day);
+                  return GestureDetector(
+                    onTap: () => setState(() {
+                      if (selected) {
+                        _selectedDays.remove(day);
+                      } else {
+                        _selectedDays.add(day);
+                      }
+                    }),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      width: 44,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: selected ? AppColors.primary : AppColors.background,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: selected ? AppColors.primary : const Color(0xFFE5E7EB),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(day,
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: selected ? Colors.white : AppColors.textDark)),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
+              const Text('Horários disponíveis',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+              const SizedBox(height: 10),
+              ...RegisterController.periods.map((period) {
+                final (label, times) = period;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(label,
+                          style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textMedium)),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: times.map((t) {
+                          final selected = _selectedTimes.contains(t);
+                          return GestureDetector(
+                            onTap: () => setState(() {
+                              if (selected) {
+                                _selectedTimes.remove(t);
+                              } else {
+                                _selectedTimes.add(t);
+                              }
+                            }),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: selected ? AppColors.primary : Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: selected ? AppColors.primary : const Color(0xFFE5E7EB),
+                                ),
+                              ),
+                              child: Text(t,
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: selected ? Colors.white : AppColors.textDark)),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () async {
                   Get.back();
@@ -2787,6 +2885,8 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                     crmv: _crmvCtrl.text.trim(),
                     species: _selectedSpecies,
                     categories: _selectedCategories,
+                    days: _selectedDays.toList(),
+                    times: _selectedTimes,
                   );
                   c.snack(
                     title: 'Perfil atualizado',

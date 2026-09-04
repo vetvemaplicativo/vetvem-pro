@@ -115,6 +115,8 @@ class HomeController extends GetxController {
     required String crmv,
     List<String>? species,
     List<String>? categories,
+    List<String>? days,
+    List<String>? times,
   }) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
@@ -125,6 +127,8 @@ class HomeController extends GetxController {
       'crmv': crmv,
       if (species != null) 'animalSpecies': species,
       if (categories != null) 'categories': categories,
+      if (days != null) 'availableDays': days,
+      if (times != null) 'availableTimes': times,
     });
     if (name.isNotEmpty) await _auth.currentUser?.updateDisplayName(name);
     professionalName.value = name;
@@ -133,6 +137,8 @@ class HomeController extends GetxController {
     professionalCrmv.value = crmv;
     if (species != null) animalSpecies.value = species;
     if (categories != null) professionalCategories.value = categories;
+    if (days != null) professionalDays.value = days;
+    if (times != null) professionalTimes.value = times;
   }
 
   final isUploadingPhoto = false.obs;
