@@ -194,9 +194,8 @@ class LoginController extends GetxController {
 
       _analytics.logLogin('google');
       Get.offAllNamed(Routes.home);
-    } catch (e) {
-      // TODO: mensagem de diagnostico temporaria - reverter apos achar a causa
-      _snackError('Erro (Google): $e');
+    } catch (_) {
+      _snackError('Não foi possível entrar com Google. Tente novamente.');
     } finally {
       isLoading.value = false;
     }
@@ -218,6 +217,7 @@ class LoginController extends GetxController {
 
       final oauthCredential = OAuthProvider('apple.com').credential(
         idToken: appleCredential.identityToken,
+        accessToken: appleCredential.authorizationCode,
         rawNonce: rawNonce,
       );
 
