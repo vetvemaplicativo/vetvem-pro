@@ -693,10 +693,11 @@ class HomeController extends GetxController {
       // Prazo de pagamento: cancelUnpaid (function) cancela após 12h sem pagar
       'confirmedAt': FieldValue.serverTimestamp(),
     };
-    // Agendamentos já pagos (ex.: portal web, onde o PIX é pago antes da
-    // confirmação) chegam com paymentStatus 'approved' — as regras do
-    // Firestore bloqueiam qualquer alteração desse campo pelo cliente, então
-    // só definimos 'pending_payment' quando o pagamento ainda não ocorreu.
+    // O tutor já paga ao solicitar (fluxo tipo Uber/iFood, desde 2026-09-08) —
+    // chega aqui com paymentStatus 'approved' na quase totalidade dos casos.
+    // As regras do Firestore bloqueiam alteração desse campo pelo cliente, então
+    // só definimos 'pending_payment' no raro caso de ainda não ter sido pago
+    // (ex.: legado, ou corrida rara do webhook do MP).
     if (d['paymentStatus'] != 'approved') {
       updates['paymentStatus'] = 'pending_payment';
     }
@@ -707,12 +708,12 @@ class HomeController extends GetxController {
       await NotificationService.sendTo(
         toUid: tutorId,
         title: '✅ Consulta confirmada!',
-        body: '${professionalName.value} confirmou a consulta de ${d['petName'] ?? 'seu pet'}. Você tem 12 horas para efetuar o pagamento e garantir seu horário — depois disso a consulta é cancelada automaticamente.',
+        body: '${professionalName.value} confirmou a consulta de ${d['petName'] ?? 'seu pet'}. Nos vemos em breve! 🐾',
       );
     }
     snack(
       title: 'Consulta confirmada!',
-      message: 'O tutor foi notificado para efetuar o pagamento.',
+      message: 'O tutor foi notificado.',
       icon: Icons.check_circle_rounded,
       color: const Color(0xFF22C55E),
     );
@@ -727,11 +728,14 @@ class HomeController extends GetxController {
     });
     Get.find<AnalyticsService>().logAppointmentRejected(id);
     final tutorId = d['tutorId'] as String?;
+    // Pagamento (se houve) é estornado automaticamente pela Cloud Function
+    // handleRejectedPayment, disparada pela própria escrita de status
+    // 'rejected' acima — não precisa chamar nada daqui.
     if (tutorId != null) {
       await NotificationService.sendTo(
         toUid: tutorId,
         title: 'Consulta não confirmada',
-        body: '${professionalName.value} não pôde confirmar a consulta de ${d['petName'] ?? 'seu pet'}. Busque outro profissional.',
+        body: '${professionalName.value} não pôde confirmar a consulta de ${d['petName'] ?? 'seu pet'}. O valor pago será estornado. Busque outro profissional.',
       );
     }
     snack(
