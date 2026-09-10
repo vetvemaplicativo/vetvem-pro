@@ -46,11 +46,12 @@ class NotificationService {
       },
     );
 
-    await FirebaseMessaging.instance.requestPermission(
+    final settings = await FirebaseMessaging.instance.requestPermission(
       alert: true,
       badge: true,
       sound: true,
     );
+    _diag('permissão: ${settings.authorizationStatus.name}');
 
     // Mostra o banner/som quando o app está em primeiro plano no iOS
     // (por padrão o iOS silencia notificações com o app aberto).
@@ -87,24 +88,51 @@ class NotificationService {
     Get.find<HomeController>().openAppointmentDetail(id);
   }
 
+  // DIAGNÓSTICO TEMPORÁRIO — remover depois que o push do iOS estiver ok.
+  // Mostra na tela exatamente o que acontece ao tentar pegar o token.
+  static bool diagnostics = true;
+
+  static void _diag(String msg) {
+    debugPrint('NotificationService: $msg');
+    if (!diagnostics) return;
+    try {
+      Get.snackbar('Diag push', msg,
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 12),
+          isDismissible: true);
+    } catch (_) {}
+  }
+
   static Future<void> _saveToken() async {
     final uid = _auth.currentUser?.uid;
-    if (uid == null) return;
+    if (uid == null) {
+      _diag('uid nulo — não salvou token');
+      return;
+    }
     try {
+      String? apns;
       // No iOS, o token do FCM só fica disponível depois que o dispositivo
       // termina de se registrar na APNs (assíncrono) — sem esperar isso,
       // getToken() pode retornar null ou lançar "apns-token-not-set".
       if (!kIsWeb && Platform.isIOS) {
-        for (var i = 0; i < 10; i++) {
-          if (await FirebaseMessaging.instance.getAPNSToken() != null) break;
+        for (var i = 0; i < 15; i++) {
+          apns = await FirebaseMessaging.instance.getAPNSToken();
+          if (apns != null) break;
           await Future.delayed(const Duration(seconds: 1));
         }
+        _diag(apns == null
+            ? 'APNs token NULO após 15s (device não registrou na APNs)'
+            : 'APNs token OK: ${apns.substring(0, 12)}...');
       }
       final token = await FirebaseMessaging.instance.getToken();
-      if (token == null) return;
+      if (token == null) {
+        _diag('getToken() retornou NULL');
+        return;
+      }
       await _firestore.collection('users').doc(uid).update({'fcmToken': token});
+      _diag('fcmToken salvo! ${token.substring(0, 12)}...');
     } catch (e) {
-      debugPrint('NotificationService._saveToken falhou: $e');
+      _diag('ERRO: $e');
     }
   }
 
