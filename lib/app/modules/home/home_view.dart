@@ -3267,9 +3267,92 @@ class _PerfilTabState extends State<_PerfilTab> {
                 side: const BorderSide(color: AppColors.error),
               ),
             ),
+            const SizedBox(height: 10),
+            Center(
+              child: TextButton(
+                onPressed: () => _showDeleteAccountDialog(context),
+                child: const Text('Encerrar conta',
+                    style: TextStyle(
+                        color: AppColors.textMedium,
+                        fontSize: 13,
+                        decoration: TextDecoration.underline)),
+              ),
+            ),
             const SizedBox(height: 24),
           ],
         ),
+      ),
+    );
+  }
+
+  // ── Encerrar conta (LGPD / Apple 5.1.1(v)) ───────────────────────────
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Encerrar conta'),
+        content: const Text(
+          'Isso vai apagar seus dados pessoais e documentos, e cancelar '
+          'consultas em aberto (avisando e estornando o tutor, se já pagas). '
+          'Consultas já concluídas ficam guardadas de forma anônima só pelo '
+          'prazo exigido por lei fiscal. Essa ação não pode ser desfeita.\n\n'
+          'Tem certeza que deseja continuar?',
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Get.back(),
+              child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () {
+              Get.back();
+              _confirmDeleteAccount(context);
+            },
+            child: const Text('Continuar',
+                style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Segunda confirmação (ação destrutiva e irreversível) antes de chamar a
+  // Cloud Function de verdade.
+  void _confirmDeleteAccount(BuildContext context) {
+    final controller = Get.find<HomeController>();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Tem certeza mesmo?'),
+        content: const Text(
+          'Sua conta será encerrada definitivamente e você será desconectado.',
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Get.back(),
+              child: const Text('Cancelar')),
+          Obx(() => TextButton(
+                onPressed: controller.isDeletingAccount.value
+                    ? null
+                    : () async {
+                        final ok = await controller.deleteAccount();
+                        if (!ok && Get.isDialogOpen == true) Get.back();
+                      },
+                child: controller.isDeletingAccount.value
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Encerrar conta',
+                        style: TextStyle(color: AppColors.error)),
+              )),
+        ],
       ),
     );
   }

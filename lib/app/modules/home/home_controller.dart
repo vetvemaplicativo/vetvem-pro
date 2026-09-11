@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import '../../data/models/service_area_model.dart';
 import '../../routes/app_routes.dart';
@@ -827,5 +828,50 @@ class HomeController extends GetxController {
       icon: Icons.check_circle_rounded,
       color: const Color(0xFF22C55E),
     );
+  }
+
+  // ── Encerrar conta (LGPD / Apple 5.1.1(v)) ──────────────────────────
+  final isDeletingAccount = false.obs;
+
+  static const _cfBase =
+      'https://southamerica-east1-vetvem-18bf4.cloudfunctions.net';
+
+  /// Chama a Cloud Function que cancela agendamentos em aberto, estorna
+  /// pagamentos pendentes, remove documentos (RG/CRMV) e o cofre de cartões
+  /// do Mercado Pago, anonimiza os dados pessoais e apaga a conta do
+  /// Firebase Auth. Depois disso o login nunca mais funciona.
+  Future<bool> deleteAccount() async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+    isDeletingAccount.value = true;
+    try {
+      final idToken = await user.getIdToken(true);
+      final res = await http.post(
+        Uri.parse('$_cfBase/deleteAccount'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $idToken',
+        },
+        body: jsonEncode({}),
+      );
+      if (res.statusCode != 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        throw Exception(body['error']?.toString() ?? 'HTTP ${res.statusCode}');
+      }
+      // A conta já foi apagada no Auth pela function — só limpa o estado local.
+      await _auth.signOut();
+      Get.offAllNamed(Routes.login);
+      return true;
+    } catch (e) {
+      Get.snackbar(
+        'Erro ao encerrar conta',
+        e.toString().replaceFirst('Exception: ', ''),
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 6),
+      );
+      return false;
+    } finally {
+      isDeletingAccount.value = false;
+    }
   }
 }
