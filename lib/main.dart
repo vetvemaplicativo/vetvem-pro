@@ -7,6 +7,7 @@ import 'app/services/analytics_service.dart';
 import 'app/services/ibge_service.dart';
 import 'app/services/taxonomy_service.dart';
 import 'app/theme/app_theme.dart';
+import 'app/widgets/force_update_gate.dart';
 import 'app/widgets/offline_banner.dart';
 
 void main() async {
@@ -31,7 +32,10 @@ class VetVemProApp extends StatelessWidget {
       initialRoute: AppPages.initial,
       getPages: AppPages.routes,
       navigatorObservers: [Get.find<AnalyticsService>().observer],
-      builder: (context, child) => OfflineBanner(child: child!),
+      builder: (context, child) => ForceUpdateGate(
+        configDocId: 'app_version_pro',
+        child: OfflineBanner(child: child!),
+      ),
     );
   }
 }
