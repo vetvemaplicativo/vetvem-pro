@@ -232,7 +232,11 @@ class _InicioTab extends GetView<HomeController> {
                   // Banner de status da conta
                   Obx(() {
                     final status = controller.accountStatus.value;
-                    if (status == 'active') return const SizedBox();
+                    // 'approved' é o valor real gravado pelo painel admin;
+                    // 'active' é só legado de contas anteriores a esse fluxo.
+                    if (status == 'approved' || status == 'active') {
+                      return const SizedBox();
+                    }
                     return _StatusBanner(status: status);
                   }),
                   const SizedBox(height: 24),
@@ -629,12 +633,15 @@ class _AccountStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = status == 'active'
+    // 'approved' é o valor real gravado pelo painel admin/fluxo de aprovação;
+    // 'active' é só o legado de contas anteriores a esse fluxo existir.
+    final isActive = status == 'approved' || status == 'active';
+    final label = isActive
         ? 'Conta ativa'
         : status == 'suspended'
             ? 'Conta suspensa'
             : 'Em análise';
-    final dotColor = status == 'active'
+    final dotColor = isActive
         ? const Color(0xFF4ADE80)
         : status == 'suspended'
             ? const Color(0xFFF87171)
@@ -675,22 +682,25 @@ class _ProfileStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = status == 'active'
+    // 'approved' é o valor real gravado pelo painel admin/fluxo de aprovação;
+    // 'active' é só o legado de contas anteriores a esse fluxo existir.
+    final isActive = status == 'approved' || status == 'active';
+    final label = isActive
         ? 'Conta ativa'
         : status == 'suspended'
             ? 'Conta suspensa'
             : 'Em análise';
-    final bg = status == 'active'
+    final bg = isActive
         ? const Color(0xFFDCFCE7)
         : status == 'suspended'
             ? const Color(0xFFFEE2E2)
             : const Color(0xFFFEF3C7);
-    final fg = status == 'active'
+    final fg = isActive
         ? const Color(0xFF166534)
         : status == 'suspended'
             ? const Color(0xFF991B1B)
             : const Color(0xFF92400E);
-    final icon = status == 'active'
+    final icon = isActive
         ? Icons.verified_rounded
         : status == 'suspended'
             ? Icons.block_rounded
