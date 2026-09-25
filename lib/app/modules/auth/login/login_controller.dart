@@ -209,6 +209,8 @@ class LoginController extends GetxController {
       final rawNonce = _generateNonce();
       final nonce = _sha256ofString(rawNonce);
 
+      // TODO: diagnostico temporario (Apple 2.1(a)) - remover junto com _appleDiag
+      _appleDiag('1/5 abrindo tela da Apple');
       final appleCredential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
@@ -216,6 +218,7 @@ class LoginController extends GetxController {
         ],
         nonce: nonce,
       );
+      _appleDiag('2/5 Apple respondeu');
 
       final oauthCredential = OAuthProvider('apple.com').credential(
         idToken: appleCredential.identityToken,
@@ -225,6 +228,7 @@ class LoginController extends GetxController {
 
       final userCredential = await _firebase.signInWithCredential(oauthCredential);
       final user = userCredential.user!;
+      _appleDiag('3/5 Firebase ok');
 
       // A Apple só envia o nome no primeiro login — salva se disponível
       final appleName = [
@@ -251,11 +255,13 @@ class LoginController extends GetxController {
         _snackError('Conta bloqueada. Entre em contato com o suporte.');
         return;
       }
+      _appleDiag('4/5 perfil lido, abrindo termos');
       if (!await TermsView.ensureAccepted()) {
         await _firebase.signOut();
         _snackError('É necessário aceitar os Termos de Uso para usar o app.');
         return;
       }
+      _appleDiag('5/5 termos ok');
 
       // Primeiro login — cria o perfil de profissional. Checa 'role' (não
       // doc.exists) porque um doc parcial pode já existir sem perfil
@@ -289,6 +295,13 @@ class LoginController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  void _appleDiag(String step) {
+    // TODO: diagnostico temporario (Apple 2.1(a)) - remover apos achar a causa
+    Get.snackbar('Apple', step,
+        snackPosition: SnackPosition.BOTTOM,
+        duration: const Duration(seconds: 4));
   }
 
   String _generateNonce([int length = 32]) {
