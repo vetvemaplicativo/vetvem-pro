@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../theme/app_theme.dart';
 import 'register_controller.dart';
 
@@ -817,7 +818,7 @@ class _Step5 extends StatelessWidget {
                 title: 'Identidade (RG ou CNH)',
                 subtitle: 'Foto legível dos dois lados',
                 uploaded: c.docIdentityUploaded.value,
-                onTap: () => c.simulateUpload('identity'),
+                onTap: () => _showDocSourceSheet(context, c, 'rg'),
               )),
           const SizedBox(height: 10),
           Obx(() => _DocUploadCard(
@@ -825,7 +826,7 @@ class _Step5 extends StatelessWidget {
                 title: 'CRMV / Certificação',
                 subtitle: 'Comprovante do registro profissional',
                 uploaded: c.docCrmvUploaded.value,
-                onTap: () => c.simulateUpload('crmv'),
+                onTap: () => _showDocSourceSheet(context, c, 'crmv'),
               )),
           const SizedBox(height: 8),
           const Text(
@@ -1003,6 +1004,36 @@ Estes Termos são regidos pelas leis brasileiras. Fica eleito o foro da comarca 
 14. CONTATO
 
 Para dúvidas ou questões relacionadas a estes Termos: profissionais@vetvem.com.br''';
+
+void _showDocSourceSheet(
+    BuildContext context, RegisterController c, String docType) {
+  showModalBottomSheet(
+    context: context,
+    builder: (sheetCtx) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.camera_alt_outlined),
+            title: const Text('Câmera'),
+            onTap: () {
+              Navigator.of(sheetCtx).pop();
+              c.pickDocument(docType, ImageSource.camera);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library_outlined),
+            title: const Text('Galeria'),
+            onTap: () {
+              Navigator.of(sheetCtx).pop();
+              c.pickDocument(docType, ImageSource.gallery);
+            },
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
 class _DocUploadCard extends StatelessWidget {
   final IconData icon;

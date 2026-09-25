@@ -1,7 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../routes/app_routes.dart';
 import '../../../services/taxonomy_service.dart';
 import '../../terms/terms_content.dart';
@@ -177,18 +180,40 @@ class RegisterController extends GetxController {
   final docCrmvUploaded     = false.obs;
   final termsAccepted       = false.obs;
 
-  void simulateUpload(String docType) {
-    if (docType == 'identity') {
-      docIdentityUploaded.value = true;
-    } else {
-      docCrmvUploaded.value = true;
+  // Fotos escolhidas no cadastro (docType 'rg' | 'crmv' -> data URI). A conta
+  // ainda não existe nesta etapa, então só são gravadas em
+  // users/{uid}/documents depois que o cadastro é criado (ver _submit).
+  final _docImages = <String, String>{};
+
+  Future<void> pickDocument(String docType, ImageSource source) async {
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 1280,
+        imageQuality: 70,
+      );
+      if (picked == null) return;
+      final bytes = await File(picked.path).readAsBytes();
+      _docImages[docType] = 'data:image/jpeg;base64,${base64Encode(bytes)}';
+      if (docType == 'rg') {
+        docIdentityUploaded.value = true;
+      } else {
+        docCrmvUploaded.value = true;
+      }
+      _snack(
+        title: 'Documento anexado',
+        message: 'Será enviado ao criar sua conta e analisado em até 24h.',
+        icon: Icons.check_circle_outline,
+        color: const Color(0xFF22C55E),
+      );
+    } catch (_) {
+      _snack(
+        title: 'Erro',
+        message: 'Não foi possível abrir a foto. Verifique as permissões.',
+        icon: Icons.error_outline_rounded,
+        color: const Color(0xFFEA4335),
+      );
     }
-    _snack(
-      title: 'Documento enviado',
-      message: 'Será analisado em até 24h.',
-      icon: Icons.check_circle_outline,
-      color: const Color(0xFF22C55E),
-    );
   }
 
   // Navegação
@@ -340,6 +365,20 @@ class RegisterController extends GetxController {
         'termos_versao': termsVersion,
         'createdAt': FieldValue.serverTimestamp(),
       });
+      // Documentos anexados no cadastro. Falha aqui não desfaz a conta: o
+      // profissional pode reenviar depois pelo perfil.
+      for (final entry in _docImages.entries) {
+        try {
+          await FirebaseFirestore.instance
+              .collection('users').doc(uid)
+              .collection('documents').doc(entry.key)
+              .set({
+            'image': entry.value,
+            'status': 'submitted',
+            'sentAt': FieldValue.serverTimestamp(),
+          });
+        } catch (_) {}
+      }
       Get.offAllNamed(Routes.home, arguments: {'services': services.toList()});
       // Novo cadastro: abre a definição da área de atuação por cima da home,
       // essencial para o profissional aparecer nas buscas dos tutores.

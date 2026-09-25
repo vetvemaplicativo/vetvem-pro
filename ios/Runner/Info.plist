@@ -38,9 +38,9 @@
 			</dict>
 		</array>
 		<key>NSCameraUsageDescription</key>
-		<string>Usamos a câmera para você tirar fotos de perfil e dos pets atendidos.</string>
+		<string>Usamos a câmera para você tirar sua foto de perfil e fotografar seus documentos (RG/CNH e CRMV) para a verificação do cadastro.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
-		<string>Usamos a galeria para você escolher fotos de perfil e dos pets atendidos.</string>
+		<string>Usamos a galeria para você escolher sua foto de perfil e enviar fotos dos seus documentos (RG/CNH e CRMV) para a verificação do cadastro.</string>
 		<key>UIApplicationSceneManifest</key>
 		<dict>
 			<key>UIApplicationSupportsMultipleScenes</key>
