@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../theme/app_theme.dart';
+import '../../terms/terms_content.dart';
 import 'register_controller.dart';
 
 class RegisterView extends GetView<RegisterController> {
@@ -850,7 +851,7 @@ class _Step5 extends StatelessWidget {
             ),
             child: const SingleChildScrollView(
               child: Text(
-                _termsPro,
+                termsText,
                 style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textDark,
@@ -908,102 +909,6 @@ class _Step5 extends StatelessWidget {
   }
 }
 
-const _termsPro = '''TERMOS DE USO — VetVem Pro (Profissional)
-Versão 1.0 — Junho de 2026
-
-1. O QUE É O VETVEM PRO
-
-O VetVem Pro é o aplicativo destinado a profissionais autônomos da área veterinária e de cuidados pet que desejam oferecer seus serviços a domicílio por meio da plataforma VetVem.
-
-O VetVem atua exclusivamente como plataforma de intermediação entre você e os tutores de pets. Você não é funcionário, representante nem agente do VetVem. A relação entre você e o tutor é de prestação de serviço autônoma e independente.
-
-2. ACEITAÇÃO DOS TERMOS
-
-Ao criar uma conta no VetVem Pro, você declara que:
-• Tem 18 anos ou mais;
-• Possui habilitação legal para exercer a atividade profissional declarada no cadastro;
-• Se veterinário, possui registro ativo no Conselho Regional de Medicina Veterinária (CRMV);
-• Leu, compreendeu e concorda integralmente com estes Termos de Uso.
-
-3. CADASTRO E VERIFICAÇÃO
-
-Para se cadastrar no VetVem Pro, você deve fornecer:
-• Nome completo e CPF;
-• Número de registro profissional (CRMV ou equivalente);
-• Foto de documento com foto;
-• Dados bancários para recebimento;
-• Localização de atuação e serviços oferecidos.
-
-O VetVem realizará verificação básica dos dados informados, mas a veracidade e validade das informações são de sua exclusiva responsabilidade. O fornecimento de informações falsas implica cancelamento imediato da conta.
-
-4. NATUREZA DA RELAÇÃO COM O VETVEM
-
-Você é um prestador de serviço autônomo e independente. Não existe vínculo empregatício, societário ou de representação entre você e o VetVem.
-
-Você é livre para definir sua agenda, aceitar ou recusar agendamentos e atuar em outras plataformas simultaneamente. O VetVem não garante volume mínimo de agendamentos.
-
-5. RESPONSABILIDADES DO PROFISSIONAL
-
-Você é integralmente responsável por:
-• A qualidade técnica, segurança e resultado dos serviços prestados;
-• Manter seu registro profissional ativo e regularizado;
-• Possuir os equipamentos e condições necessárias para realização dos serviços;
-• Cumprir os agendamentos confirmados ou cancelar com antecedência mínima de 24 horas;
-• Respeitar a privacidade e os bens do tutor durante o atendimento domiciliar;
-• Qualquer dano causado ao animal, ao tutor ou a terceiros durante a prestação do serviço;
-• O recolhimento de tributos incidentes sobre sua renda (IRPF, INSS, ISS, quando aplicável).
-
-6. POLÍTICA DE NÃO-DESINTERMEDIAÇÃO
-
-É expressamente proibido:
-• Solicitar ou induzir o tutor a realizar pagamentos fora do aplicativo;
-• Combinar agendamentos futuros diretamente com tutores conhecidos pelo VetVem;
-• Oferecer descontos condicionados ao pagamento externo.
-
-O descumprimento implica suspensão imediata da conta e pode resultar em cobrança de multa contratual.
-
-7. COMISSÕES E PAGAMENTOS
-
-O VetVem retém uma comissão sobre cada serviço concluído e pago pela plataforma, conforme tabela vigente disponível no aplicativo. O repasse ao profissional será realizado em até D+2 dias úteis após a confirmação de conclusão do serviço.
-
-8. LIMITAÇÃO DE RESPONSABILIDADE DO VETVEM
-
-O VetVem não se responsabiliza por:
-• Erros ou danos decorrentes dos serviços que você presta;
-• Reclamações de tutores relacionadas à qualidade do atendimento;
-• Danos causados por você ao animal ou ao domicílio do tutor;
-• Sua situação fiscal, tributária ou previdenciária;
-• Indisponibilidade temporária do aplicativo.
-
-9. PRONTUÁRIO DIGITAL
-
-Ao registrar informações no prontuário digital do pet após uma consulta concluída, você declara que as informações são verdadeiras e refletem o atendimento realizado. Essas informações ficam vinculadas ao pet na plataforma e podem ser visualizadas pelo tutor.
-
-10. AVALIAÇÕES
-
-Os tutores poderão avaliar seus serviços na plataforma. Avaliações negativas não serão removidas salvo em caso de comprovada má-fé do tutor. Sua nota média impacta sua visibilidade nas buscas do aplicativo.
-
-11. SUSPENSÃO E DESCREDENCIAMENTO
-
-O VetVem pode suspender ou encerrar sua conta em caso de:
-• Registro profissional cassado ou suspenso;
-• Reiteradas reclamações de tutores;
-• Descumprimento da política de não-desintermediação;
-• Comportamento abusivo com tutores ou animais;
-• Fornecimento de informações falsas no cadastro;
-• Violação destes Termos de Uso.
-
-12. ALTERAÇÕES NOS TERMOS
-
-O VetVem pode atualizar estes Termos a qualquer momento, com notificação prévia pelo aplicativo. O uso continuado da plataforma após a notificação implica aceitação dos novos termos.
-
-13. LEGISLAÇÃO APLICÁVEL E FORO
-
-Estes Termos são regidos pelas leis brasileiras. Fica eleito o foro da comarca do Rio de Janeiro/RJ para dirimir quaisquer controvérsias.
-
-14. CONTATO
-
-Para dúvidas ou questões relacionadas a estes Termos: profissionais@vetvem.com.br''';
 
 void _showDocSourceSheet(
     BuildContext context, RegisterController c, String docType) {

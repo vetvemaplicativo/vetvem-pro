@@ -36,7 +36,15 @@ class TermsView extends StatefulWidget {
 
   /// Gate do login: se a conta ainda não aceitou os termos, mostra a tela.
   /// Retorna true se o acesso pode prosseguir.
-  static Future<bool> ensureAccepted() async {
+  static Future<bool>? _inFlight;
+
+  // Chamadas simultâneas (splash + login, por exemplo) compartilham a mesma
+  // tela em vez de empilhar uma por cima da outra.
+  static Future<bool> ensureAccepted() {
+    return _inFlight ??= _ensureAccepted().whenComplete(() => _inFlight = null);
+  }
+
+  static Future<bool> _ensureAccepted() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return false;
     try {
@@ -66,26 +74,7 @@ class TermsView extends StatefulWidget {
 
 class _TermsViewState extends State<TermsView> {
   final _scroll = ScrollController();
-  bool _reachedEnd = false;
   bool _checked = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _scroll.addListener(() {
-      if (!_reachedEnd &&
-          _scroll.position.pixels >=
-              _scroll.position.maxScrollExtent - 24) {
-        setState(() => _reachedEnd = true);
-      }
-    });
-    // Texto menor que a tela: libera direto
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _scroll.position.maxScrollExtent <= 0) {
-        setState(() => _reachedEnd = true);
-      }
-    });
-  }
 
   @override
   void dispose() {
@@ -141,25 +130,13 @@ class _TermsViewState extends State<TermsView> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (!_reachedEnd)
-                      const Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: Text(
-                          'Role até o final do texto para habilitar o aceite',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textMedium,
-                              fontFamily: 'Poppins'),
-                        ),
-                      ),
                     Row(
                       children: [
                         Checkbox(
                           value: _checked,
                           activeColor: AppColors.primary,
-                          onChanged: _reachedEnd
-                              ? (v) => setState(() => _checked = v ?? false)
-                              : null,
+                          onChanged: (v) =>
+                              setState(() => _checked = v ?? false),
                         ),
                         const Expanded(
                           child: Text(

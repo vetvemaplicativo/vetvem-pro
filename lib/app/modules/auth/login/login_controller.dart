@@ -195,9 +195,8 @@ class LoginController extends GetxController {
 
       _analytics.logLogin('google');
       Get.offAllNamed(Routes.home);
-    } catch (e) {
-      // TODO: mensagem de diagnostico temporaria - reverter apos achar a causa
-      _snackError('Erro (Google): $e');
+    } catch (_) {
+      _snackError('Não foi possível entrar com Google. Tente novamente.');
     } finally {
       isLoading.value = false;
     }
@@ -209,8 +208,6 @@ class LoginController extends GetxController {
       final rawNonce = _generateNonce();
       final nonce = _sha256ofString(rawNonce);
 
-      // TODO: diagnostico temporario (Apple 2.1(a)) - remover junto com _appleDiag
-      _appleDiag('1/5 abrindo tela da Apple');
       final appleCredential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
@@ -218,7 +215,6 @@ class LoginController extends GetxController {
         ],
         nonce: nonce,
       );
-      _appleDiag('2/5 Apple respondeu');
 
       final oauthCredential = OAuthProvider('apple.com').credential(
         idToken: appleCredential.identityToken,
@@ -228,7 +224,6 @@ class LoginController extends GetxController {
 
       final userCredential = await _firebase.signInWithCredential(oauthCredential);
       final user = userCredential.user!;
-      _appleDiag('3/5 Firebase ok');
 
       // A Apple só envia o nome no primeiro login — salva se disponível
       final appleName = [
@@ -255,13 +250,11 @@ class LoginController extends GetxController {
         _snackError('Conta bloqueada. Entre em contato com o suporte.');
         return;
       }
-      _appleDiag('4/5 perfil lido, abrindo termos');
       if (!await TermsView.ensureAccepted()) {
         await _firebase.signOut();
         _snackError('É necessário aceitar os Termos de Uso para usar o app.');
         return;
       }
-      _appleDiag('5/5 termos ok');
 
       // Primeiro login — cria o perfil de profissional. Checa 'role' (não
       // doc.exists) porque um doc parcial pode já existir sem perfil
@@ -283,25 +276,13 @@ class LoginController extends GetxController {
       Get.offAllNamed(Routes.home);
     } on SignInWithAppleAuthorizationException catch (e) {
       if (e.code != AuthorizationErrorCode.canceled) {
-        // TODO: diagnostico temporario - reverter apos achar a causa (Apple 2.1(a))
-        _snackError('Erro (Apple/auth): ${e.code} - ${e.message}');
+        _snackError('Não foi possível entrar com Apple. Tente novamente.');
       }
-    } on FirebaseAuthException catch (e) {
-      // TODO: diagnostico temporario - reverter apos achar a causa (Apple 2.1(a))
-      _snackError('Erro (Apple/firebase): ${e.code} - ${e.message}');
-    } catch (e) {
-      // TODO: diagnostico temporario - reverter apos achar a causa (Apple 2.1(a))
-      _snackError('Erro (Apple): $e');
+    } catch (_) {
+      _snackError('Não foi possível entrar com Apple. Tente novamente.');
     } finally {
       isLoading.value = false;
     }
-  }
-
-  void _appleDiag(String step) {
-    // TODO: diagnostico temporario (Apple 2.1(a)) - remover apos achar a causa
-    Get.snackbar('Apple', step,
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 4));
   }
 
   String _generateNonce([int length = 32]) {
@@ -370,7 +351,7 @@ class LoginController extends GetxController {
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       borderRadius: 14,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      duration: const Duration(seconds: 15), // TODO: diagnostico temporario
+      duration: const Duration(seconds: 3),
       icon: Container(
         width: 36, height: 36,
         decoration: BoxDecoration(

@@ -8,7 +8,6 @@ import 'package:image_picker/image_picker.dart';
 import '../../../routes/app_routes.dart';
 import '../../../services/taxonomy_service.dart';
 import '../../terms/terms_content.dart';
-import '../../terms/terms_view.dart';
 
 class RegisterController extends GetxController {
   final currentStep = 0.obs;
@@ -222,16 +221,8 @@ class RegisterController extends GetxController {
     if (currentStep.value < totalSteps - 1) {
       currentStep.value++;
     } else {
-      // Aceite dos termos obrigatório antes de criar a conta
-      final accepted = await Get.to<bool>(
-            () => TermsView(
-              onAccept: () => Get.back(result: true),
-              onDecline: () => Get.back(result: false),
-            ),
-            fullscreenDialog: true,
-          ) ??
-          false;
-      if (!accepted) return;
+      // O aceite dos Termos já foi marcado na própria última etapa
+      // (termsAccepted, exigido em _validateStep) — sem tela extra.
       _submit();
     }
   }
