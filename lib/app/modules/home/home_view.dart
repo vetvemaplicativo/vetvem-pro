@@ -79,7 +79,9 @@ class _InicioTab extends GetView<HomeController> {
         slivers: [
           SliverAppBar(
             expandedHeight: 180,
-            pinned: true,
+            // Não fixar: ao encolher até a altura da barra o conteúdo do
+            // cabeçalho (foto, nome, selo) ficava cortado ao meio.
+            pinned: false,
             backgroundColor: AppColors.primary,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(

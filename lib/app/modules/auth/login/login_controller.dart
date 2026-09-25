@@ -277,10 +277,15 @@ class LoginController extends GetxController {
       Get.offAllNamed(Routes.home);
     } on SignInWithAppleAuthorizationException catch (e) {
       if (e.code != AuthorizationErrorCode.canceled) {
-        _snackError('Não foi possível entrar com Apple. Tente novamente.');
+        // TODO: diagnostico temporario - reverter apos achar a causa (Apple 2.1(a))
+        _snackError('Erro (Apple/auth): ${e.code} - ${e.message}');
       }
-    } catch (_) {
-      _snackError('Não foi possível entrar com Apple. Tente novamente.');
+    } on FirebaseAuthException catch (e) {
+      // TODO: diagnostico temporario - reverter apos achar a causa (Apple 2.1(a))
+      _snackError('Erro (Apple/firebase): ${e.code} - ${e.message}');
+    } catch (e) {
+      // TODO: diagnostico temporario - reverter apos achar a causa (Apple 2.1(a))
+      _snackError('Erro (Apple): $e');
     } finally {
       isLoading.value = false;
     }

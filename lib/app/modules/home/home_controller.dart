@@ -441,7 +441,14 @@ class HomeController extends GetxController {
         .where('vetName', isEqualTo: _auth.currentUser?.displayName ?? '')
         .snapshots()
         .listen((snap) {
-      final docs = snap.docs.toList()
+      // O tutor paga já ao solicitar: enquanto o pagamento não for aprovado,
+      // a solicitação não existe para o profissional (evita aceitar/recusar
+      // algo que o tutor ainda nem pagou).
+      final docs = snap.docs.where((doc) {
+        final d = doc.data();
+        return !(d['status'] == 'pending_confirmation' &&
+            d['paymentStatus'] != 'approved');
+      }).toList()
         ..sort((a, b) {
           final at = a.data()['createdAt'];
           final bt = b.data()['createdAt'];
