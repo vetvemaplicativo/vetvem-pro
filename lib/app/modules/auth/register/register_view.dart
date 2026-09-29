@@ -653,6 +653,7 @@ class _Step5 extends StatelessWidget {
     return _StepScaffold(
       onNext: c.nextStep,
       buttonLabel: 'Concluir cadastro',
+      submitting: c.isSubmitting,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1033,10 +1034,12 @@ class _StepScaffold extends StatelessWidget {
   final Widget child;
   final VoidCallback onNext;
   final String buttonLabel;
+  final RxBool? submitting;
   const _StepScaffold(
       {required this.child,
       required this.onNext,
-      required this.buttonLabel});
+      required this.buttonLabel,
+      this.submitting});
 
   @override
   Widget build(BuildContext context) {
@@ -1048,8 +1051,19 @@ class _StepScaffold extends StatelessWidget {
         Padding(
           padding: EdgeInsets.fromLTRB(
               24, 0, 24, 24 + MediaQuery.of(context).viewInsets.bottom),
-          child:
-              ElevatedButton(onPressed: onNext, child: Text(buttonLabel)),
+          child: submitting == null
+              ? ElevatedButton(onPressed: onNext, child: Text(buttonLabel))
+              : Obx(() => ElevatedButton(
+                    onPressed: submitting!.value ? null : onNext,
+                    child: submitting!.value
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : Text(buttonLabel),
+                  )),
         ),
       ],
     );

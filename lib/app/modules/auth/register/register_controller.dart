@@ -11,6 +11,7 @@ import '../../terms/terms_content.dart';
 
 class RegisterController extends GetxController {
   final currentStep = 0.obs;
+  final isSubmitting = false.obs;
   static const totalSteps = 5;
 
   // Step 1 — Dados pessoais
@@ -221,6 +222,11 @@ class RegisterController extends GetxController {
     if (currentStep.value < totalSteps - 1) {
       currentStep.value++;
     } else {
+      // Evita duplo toque no "Criar conta" disparando 2 cadastros em paralelo
+      // (a 2ª chamada falha com "email-already-in-use" logo após a 1ª criar
+      // a conta com sucesso, confundindo o usuário com as duas mensagens).
+      if (isSubmitting.value) return;
+      isSubmitting.value = true;
       // O aceite dos Termos já foi marcado na própria última etapa
       // (termsAccepted, exigido em _validateStep) — sem tela extra.
       _submit();
@@ -392,6 +398,8 @@ class RegisterController extends GetxController {
         icon: Icons.wifi_off_rounded,
         color: const Color(0xFFEA4335),
       );
+    } finally {
+      isSubmitting.value = false;
     }
   }
 
