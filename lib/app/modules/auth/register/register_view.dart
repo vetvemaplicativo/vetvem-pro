@@ -805,7 +805,7 @@ class _Step5 extends StatelessWidget {
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Sua conta ficará pendente até a análise dos documentos (até 24h).',
+                    'Envie os dois documentos abaixo. Sua conta ficará pendente até a análise (até 24h).',
                     style: TextStyle(fontSize: 12, color: Color(0xFF92400E)),
                   ),
                 ),
@@ -831,7 +831,7 @@ class _Step5 extends StatelessWidget {
               )),
           const SizedBox(height: 8),
           const Text(
-            'Você pode enviar os documentos depois pelo seu perfil.',
+            'Os dois documentos são obrigatórios para criar a conta.',
             style: TextStyle(fontSize: 12, color: AppColors.textLight),
             textAlign: TextAlign.center,
           ),

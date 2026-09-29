@@ -260,6 +260,10 @@ class RegisterController extends GetxController {
           _warn('Preencha o endereço completo');
           return false;
         }
+        if (!docIdentityUploaded.value || !docCrmvUploaded.value) {
+          _warn('Envie a foto do RG/CNH e do CRMV para continuar');
+          return false;
+        }
         if (!termsAccepted.value) {
           _warn('Aceite os Termos de Uso para continuar');
           return false;
