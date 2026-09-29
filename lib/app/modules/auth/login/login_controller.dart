@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
@@ -190,6 +191,7 @@ class LoginController extends GetxController {
           'role': 'professional',
           'accountStatus': 'pending',
           'createdAt': FieldValue.serverTimestamp(),
+          'platform': Platform.isIOS ? 'ios' : 'android',
         }, SetOptions(merge: true));
       }
 
@@ -269,6 +271,7 @@ class LoginController extends GetxController {
           'role': 'professional',
           'accountStatus': 'pending',
           'createdAt': FieldValue.serverTimestamp(),
+          'platform': Platform.isIOS ? 'ios' : 'android',
         }, SetOptions(merge: true));
       }
 

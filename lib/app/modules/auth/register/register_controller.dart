@@ -323,13 +323,34 @@ class RegisterController extends GetxController {
   }
 
   Future<void> _submit() async {
+    UserCredential? credential;
     try {
-      final credential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
+      credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: emailCtrl.text.trim(),
         password: passwordCtrl.text,
       );
-      final uid = credential.user!.uid;
+    } on FirebaseAuthException catch (e) {
+      _snack(
+        title: 'Erro no cadastro',
+        message: _mapFirebaseError(e),
+        icon: Icons.error_outline_rounded,
+        color: const Color(0xFFEA4335),
+      );
+      isSubmitting.value = false;
+      return;
+    } catch (_) {
+      _snack(
+        title: 'Erro',
+        message: 'Sem conexão. Verifique sua internet.',
+        icon: Icons.wifi_off_rounded,
+        color: const Color(0xFFEA4335),
+      );
+      isSubmitting.value = false;
+      return;
+    }
+
+    final uid = credential.user!.uid;
+    try {
       await credential.user?.updateDisplayName(nameCtrl.text.trim());
       // Salva perfil do profissional no Firestore
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
@@ -361,6 +382,7 @@ class RegisterController extends GetxController {
             ? [{'type': pixKeyType.value, 'key': pixKeyCtrl.text.trim()}]
             : [],
         'accountStatus': 'pending',
+        'platform': Platform.isIOS ? 'ios' : 'android',
         'termos_aceitos': true,
         'termos_aceitos_em': FieldValue.serverTimestamp(),
         'termos_versao': termsVersion,
@@ -384,17 +406,17 @@ class RegisterController extends GetxController {
       // Novo cadastro: abre a definição da área de atuação por cima da home,
       // essencial para o profissional aparecer nas buscas dos tutores.
       Get.toNamed(Routes.serviceArea);
-    } on FirebaseAuthException catch (e) {
-      _snack(
-        title: 'Erro no cadastro',
-        message: _mapFirebaseError(e),
-        icon: Icons.error_outline_rounded,
-        color: const Color(0xFFEA4335),
-      );
     } catch (_) {
+      // O login já foi criado, mas o perfil não foi salvo — sem isso a conta
+      // fica "zumbi" (a pessoa consegue logar de novo, mas com o perfil
+      // vazio, sem aviso). Desfaz o login pra ela poder tentar de novo do
+      // zero com o mesmo e-mail, em vez de ficar presa nesse estado quebrado.
+      try {
+        await credential.user?.delete();
+      } catch (_) {}
       _snack(
-        title: 'Erro',
-        message: 'Sem conexão. Verifique sua internet.',
+        title: 'Erro ao salvar cadastro',
+        message: 'Não foi possível concluir. Verifique sua internet e tente novamente.',
         icon: Icons.wifi_off_rounded,
         color: const Color(0xFFEA4335),
       );
