@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import '../terms/terms_view.dart';
@@ -315,32 +316,81 @@ class _InicioTab extends GetView<HomeController> {
               ),
             ),
             const Divider(height: 1),
-            _NotifItem(
-              icon: Icons.calendar_today_outlined,
-              color: AppColors.primary,
-              title: 'Novo agendamento',
-              subtitle: 'Pedro Costa agendou para amanhã às 16:00',
-              time: '5 min atrás',
-            ),
-            _NotifItem(
-              icon: Icons.star_outline_rounded,
-              color: const Color(0xFFF59E0B),
-              title: 'Nova avaliação',
-              subtitle: 'Ana Lima te avaliou com 5 estrelas ⭐',
-              time: '1h atrás',
-            ),
-            _NotifItem(
-              icon: Icons.account_balance_wallet_outlined,
-              color: const Color(0xFF22C55E),
-              title: 'Pagamento recebido',
-              subtitle: 'R\$ 120,00 referente à consulta de Thor',
-              time: '3h atrás',
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.5,
+              ),
+              child: _NotificationsList(),
             ),
             const SizedBox(height: 20),
           ],
         ),
       ),
     );
+  }
+}
+
+class _NotificationsList extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return const SizedBox.shrink();
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('notifications')
+          .doc(uid)
+          .collection('pending')
+          .orderBy('createdAt', descending: true)
+          .limit(20)
+          .snapshots(),
+      builder: (context, snap) {
+        if (!snap.hasData) {
+          return const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final docs = snap.data!.docs;
+        if (docs.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(
+              child: Text('Nenhuma notificação por aqui ainda.',
+                  style: TextStyle(fontSize: 13, color: AppColors.textMedium)),
+            ),
+          );
+        }
+        return ListView.builder(
+          shrinkWrap: true,
+          itemCount: docs.length,
+          itemBuilder: (_, i) {
+            final d = docs[i].data();
+            final tipo = d['tipo'] as String? ?? '';
+            final (icon, color) = switch (tipo) {
+              'novo_agendamento' => (Icons.calendar_today_outlined, AppColors.primary),
+              'consulta_expirada' => (Icons.hourglass_disabled_rounded, const Color(0xFFEF4444)),
+              _ => (Icons.notifications_outlined, const Color(0xFFF59E0B)),
+            };
+            return _NotifItem(
+              icon: icon,
+              color: color,
+              title: d['title'] as String? ?? 'VetVem Pro',
+              subtitle: d['body'] as String? ?? '',
+              time: _timeAgo(d['createdAt']),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _timeAgo(dynamic ts) {
+    if (ts is! Timestamp) return '';
+    final diff = DateTime.now().difference(ts.toDate());
+    if (diff.inMinutes < 1) return 'agora';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min atrás';
+    if (diff.inHours < 24) return '${diff.inHours}h atrás';
+    return '${diff.inDays}d atrás';
   }
 }
 
