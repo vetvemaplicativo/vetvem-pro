@@ -397,6 +397,7 @@ class HomeController extends GetxController {
     _loadProfile();
     _listenAppointments();
     _listenDocuments();
+    _listenAccountStatus();
 
     // Deep-link: push chegou antes deste controller existir
     final pendingId = NotificationService.pendingAppointmentId;
@@ -652,6 +653,17 @@ class HomeController extends GetxController {
       await Get.toNamed(Routes.appointmentDetail,
           arguments: _apptToMap(doc.id, doc.data()!));
     } catch (_) {}
+  }
+
+  // Acompanha o status da conta em tempo real: aprovação/revisão feita no
+  // painel admin vale na hora, sem precisar deslogar.
+  void _listenAccountStatus() {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+    _firestore.collection('users').doc(uid).snapshots().listen((snap) {
+      final s = snap.data()?['accountStatus'];
+      if (s is String && s.isNotEmpty) accountStatus.value = s;
+    });
   }
 
   Future<void> _loadProfile() async {

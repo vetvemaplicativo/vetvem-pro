@@ -2,7 +2,7 @@ name: vetvem_pro
 description: "VetVem Pro - Gerencie seus atendimentos veterinários a domicílio."
 publish_to: 'none'
 
-version: 1.0.9+38
+version: 1.0.9+39
 
 environment:
   sdk: ^3.12.1
