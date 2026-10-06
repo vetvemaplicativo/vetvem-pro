@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/reauth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import '../terms/terms_view.dart';
@@ -1855,8 +1856,11 @@ class _FinanceiroTab extends GetView<HomeController> {
                     .map((e) => _PixKeyItem(
                           index: e.key,
                           data: e.value,
-                          onRemove: () =>
-                              controller.removePixKey(e.key),
+                          onRemove: () async {
+                            if (!await ReauthService.confirm()) return;
+                            await controller.removePixKey(e.key);
+                            _pixSecurityNotice(controller);
+                          },
                         ))
                     .toList(),
               );
@@ -2105,6 +2109,16 @@ class _FinanceiroTab extends GetView<HomeController> {
     );
   }
 
+  void _pixSecurityNotice(HomeController controller) {
+    controller.snack(
+      title: 'Chave PIX alterada',
+      message:
+          'Por segurança, o próximo repasse pode levar até 48h a mais.',
+      icon: Icons.info_outline_rounded,
+      color: const Color(0xFFF59E0B),
+    );
+  }
+
   void _showPixSheet(BuildContext context) {
     final keyCtrl = TextEditingController();
     String selectedType = 'CPF';
@@ -2196,11 +2210,13 @@ class _FinanceiroTab extends GetView<HomeController> {
                   onPressed: () async {
                     final key = keyCtrl.text.trim();
                     if (key.isEmpty) return;
+                    if (!await ReauthService.confirm()) return;
                     Get.back();
                     await controller.addPixKey(selectedType, key);
                     controller.snack(
                       title: 'PIX cadastrado',
-                      message: 'Chave $selectedType salva com sucesso!',
+                      message:
+                          'Chave $selectedType salva. Por segurança, o próximo repasse pode levar até 48h a mais.',
                       icon: Icons.check_circle_rounded,
                       color: const Color(0xFF22C55E),
                     );
