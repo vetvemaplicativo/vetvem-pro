@@ -109,7 +109,8 @@ class HomeController extends GetxController {
     } catch (_) {}
   }
 
-  Future<void> updateProfile({
+  /// Retorna true se o CRMV mudou (conta volta para revisão e exige novo documento).
+  Future<bool> updateProfile({
     required String name,
     required String phone,
     required String bio,
@@ -120,12 +121,16 @@ class HomeController extends GetxController {
     List<String>? times,
   }) async {
     final uid = _auth.currentUser?.uid;
-    if (uid == null) return;
+    if (uid == null) return false;
+    final oldCrmv = professionalCrmv.value.trim();
+    final crmvChanged =
+        oldCrmv.isNotEmpty && oldCrmv.toUpperCase() != crmv.trim().toUpperCase();
     await _firestore.collection('users').doc(uid).update({
       'name': name,
       'phone': phone,
       'bio': bio,
       'crmv': crmv,
+      if (crmvChanged) 'accountStatus': 'pending',
       if (species != null) 'animalSpecies': species,
       if (categories != null) 'categories': categories,
       if (days != null) 'availableDays': days,
@@ -140,6 +145,17 @@ class HomeController extends GetxController {
     if (categories != null) professionalCategories.value = categories;
     if (days != null) professionalDays.value = days;
     if (times != null) professionalTimes.value = times;
+    if (crmvChanged) {
+      // O CRMV antigo não vale mais: apaga o documento para exigir o novo
+      try {
+        await _firestore
+            .collection('users').doc(uid)
+            .collection('documents').doc('crmv')
+            .delete();
+      } catch (_) {}
+      accountStatus.value = 'pending';
+    }
+    return crmvChanged;
   }
 
   final isUploadingPhoto = false.obs;

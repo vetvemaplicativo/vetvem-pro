@@ -2940,7 +2940,7 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
               ElevatedButton(
                 onPressed: () async {
                   Get.back();
-                  await c.updateProfile(
+                  final crmvChanged = await c.updateProfile(
                     name: _nameCtrl.text.trim(),
                     phone: _phoneCtrl.text.trim(),
                     bio: _bioCtrl.text.trim(),
@@ -2950,6 +2950,16 @@ class _EditProfileSheetState extends State<_EditProfileSheet> {
                     days: _selectedDays.toList(),
                     times: _selectedTimes,
                   );
+                  if (crmvChanged) {
+                    c.snack(
+                      title: 'CRMV em revisão',
+                      message:
+                          'Envie o novo documento do CRMV em Perfil → Documentos. Seu perfil fica oculto até a aprovação.',
+                      icon: Icons.info_outline_rounded,
+                      color: const Color(0xFFF59E0B),
+                    );
+                    return;
+                  }
                   c.snack(
                     title: 'Perfil atualizado',
                     message: 'Suas informações foram salvas.',
