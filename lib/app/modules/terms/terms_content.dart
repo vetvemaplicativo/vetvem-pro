@@ -1,16 +1,18 @@
 /// Versão dos termos vigentes — incremente ao alterar o texto.
-const termsVersion = '1.0';
+const termsVersion = '2.0';
 
 /// RASCUNHO — revisar com advogado antes do lançamento oficial.
 const termsText = '''
 TERMOS DE USO E POLÍTICA DE PRIVACIDADE — VETVEM PRO (PROFISSIONAL)
-Versão 1.0 · Julho de 2026
+Versão 2.0 · Outubro de 2026
 
 1. SOBRE A PLATAFORMA
 
 1.1. O VetVem Pro é a plataforma do VetVem destinada a médicos-veterinários e profissionais de serviços pet autônomos. O VetVem atua exclusivamente como INTERMEDIADOR entre você e os tutores — não somos seu empregador, e nenhum vínculo empregatício, societário ou de representação é formado por estes Termos.
 
 1.2. Você atua como profissional autônomo e independente, definindo livremente seus serviços, preços, dias, horários e área de atuação.
+
+1.3. O VetVem é uma marca operada pela RBS TECH DIGITAL LTDA, inscrita no CNPJ sob o nº 25.189.702/0001-96, com sede no Município do Rio de Janeiro/RJ.
 
 2. CADASTRO, DOCUMENTOS E APROVAÇÃO
 
@@ -28,9 +30,9 @@ Versão 1.0 · Julho de 2026
 
 3.3. Você se compromete a comparecer aos atendimentos confirmados e pagos. Faltas injustificadas geram reembolso ao tutor e podem levar à suspensão da conta.
 
-4. AGENDAMENTOS E CANCELAMENTO AUTOMÁTICO
+4. AGENDAMENTOS E PRAZO DE RESPOSTA
 
-4.1. Ao receber uma solicitação, você pode confirmá-la ou recusá-la. Após a sua confirmação, o tutor tem 12 (doze) horas para efetuar o pagamento; sem pagamento no prazo (ou até o horário da consulta), o agendamento é cancelado automaticamente e o horário volta a ficar disponível.
+4.1. O tutor paga no momento da solicitação, e você só recebe a solicitação depois da aprovação do pagamento. Você pode confirmá-la ou recusá-la em até 1 (uma) hora e, em qualquer caso, antes do horário marcado. Se você recusar ou não responder nesse prazo, a solicitação é encerrada e o valor é estornado automaticamente ao tutor.
 
 4.2. Somente consultas pagas pelo aplicativo são garantidas. É PROIBIDO combinar ou receber pagamentos por fora da plataforma para serviços originados nela — a prática viola estes Termos e leva à suspensão da conta.
 
@@ -54,7 +56,7 @@ Versão 1.0 · Julho de 2026
 
 7. PRIVACIDADE E PROTEÇÃO DE DADOS (LGPD)
 
-7.1. Tratamos seus dados conforme a Lei nº 13.709/2018 (LGPD). Dados coletados: identificação, documentos profissionais, chave PIX, área de atuação, serviços e histórico de atendimentos. Finalidades: operação da plataforma, verificação profissional, pagamentos e repasses.
+7.1. A RBS TECH DIGITAL LTDA, que opera o VetVem, é a controladora dos seus dados e os trata conforme a Lei nº 13.709/2018 (LGPD). Dados coletados: identificação, documentos profissionais, chave PIX, área de atuação, serviços e histórico de atendimentos. Finalidades: operação da plataforma, verificação profissional, pagamentos e repasses.
 
 7.2. Seu perfil público exibe aos tutores: nome, foto, categorias, avaliações, área de atuação e preços. Documentos enviados são acessíveis apenas à equipe de verificação.
 
