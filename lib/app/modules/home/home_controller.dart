@@ -8,6 +8,7 @@ import '../../data/models/service_area_model.dart';
 import '../../routes/app_routes.dart';
 import '../../services/analytics_service.dart';
 import '../../services/notification_service.dart';
+import '../../services/password_reset_service.dart';
 import '../../widgets/permission_help.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter/material.dart'
@@ -330,7 +331,7 @@ class HomeController extends GetxController {
       return;
     }
     try {
-      await _auth.sendPasswordResetEmail(email: email);
+      if (!await PasswordResetService.send(email)) throw Exception('falha');
       Get.find<AnalyticsService>().logProfileAction('password_reset_requested');
       snack(
         title: 'E-mail enviado',

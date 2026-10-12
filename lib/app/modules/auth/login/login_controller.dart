@@ -10,6 +10,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../../../routes/app_routes.dart';
 import '../../../services/analytics_service.dart';
+import '../../../services/password_reset_service.dart';
 import '../../../theme/app_theme.dart';
 import '../../terms/terms_view.dart';
 
@@ -117,9 +118,12 @@ class LoginController extends GetxController {
     }
     isLoading.value = true;
     try {
-      await _firebase.sendPasswordResetEmail(email: email);
+      if (!await PasswordResetService.send(email)) {
+        _snackError('Erro ao enviar e-mail. Tente novamente.');
+        return;
+      }
       Get.back();
-      Get.snackbar('Pronto!', 'E-mail enviado! Verifique sua caixa de entrada.',
+      Get.snackbar('Pronto!', 'Se houver uma conta com este e-mail, enviamos o link. Verifique sua caixa de entrada.',
           snackPosition: SnackPosition.TOP,
           backgroundColor: const Color(0xFF22C55E),
           colorText: Colors.white,
