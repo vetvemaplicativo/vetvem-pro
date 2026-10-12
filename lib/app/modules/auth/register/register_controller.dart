@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../routes/app_routes.dart';
+import '../../../services/analytics_service.dart';
 import '../../../services/taxonomy_service.dart';
 import '../../terms/terms_content.dart';
 
@@ -221,6 +222,7 @@ class RegisterController extends GetxController {
     if (!_validateStep()) return;
     if (currentStep.value < totalSteps - 1) {
       currentStep.value++;
+      Get.find<AnalyticsService>().logRegisterStep(currentStep.value + 1);
     } else {
       // Evita duplo toque no "Criar conta" disparando 2 cadastros em paralelo
       // (a 2ª chamada falha com "email-already-in-use" logo após a 1ª criar
@@ -402,6 +404,7 @@ class RegisterController extends GetxController {
           });
         } catch (_) {}
       }
+      Get.find<AnalyticsService>().logSignUp('email');
       Get.offAllNamed(Routes.home, arguments: {'services': services.toList()});
       // Novo cadastro: abre a definição da área de atuação por cima da home,
       // essencial para o profissional aparecer nas buscas dos tutores.

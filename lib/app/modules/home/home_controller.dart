@@ -8,6 +8,8 @@ import '../../data/models/service_area_model.dart';
 import '../../routes/app_routes.dart';
 import '../../services/analytics_service.dart';
 import '../../services/notification_service.dart';
+import '../../widgets/permission_help.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter/material.dart'
     show
       BoxDecoration,
@@ -201,6 +203,18 @@ class HomeController extends GetxController {
   // status por tipo: '' (não enviado) | submitted | approved | rejected
   final docStatuses = <String, String>{}.obs;
   final isUploadingDoc = false.obs;
+  final professionalAddress = <String, String>{}.obs;
+  // true depois da 1ª leitura dos documentos (evita piscar 'faltam documentos')
+  final docsLoaded = false.obs;
+
+  /// Falta enviar (ou reenviar) RG/CNH ou CRMV.
+  bool get missingDocs {
+    bool ok(String t) {
+      final s = docStatuses[t];
+      return s != null && s != 'rejected';
+    }
+    return !(ok('rg') && ok('crmv'));
+  }
 
   void _listenDocuments() {
     final uid = _auth.currentUser?.uid;
@@ -214,6 +228,7 @@ class HomeController extends GetxController {
         map[doc.id] = doc.data()['status'] as String? ?? 'submitted';
       }
       docStatuses.assignAll(map);
+      docsLoaded.value = true;
     });
   }
 
@@ -221,11 +236,28 @@ class HomeController extends GetxController {
   Future<void> uploadDocument(String docType, ImageSource source) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
-    final picked = await ImagePicker().pickImage(
-      source: source,
-      maxWidth: 1280,
-      imageQuality: 70,
-    );
+    XFile? picked;
+    try {
+      picked = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 1280,
+        imageQuality: 70,
+      );
+    } on PlatformException catch (e) {
+      // câmera/fotos negadas (ou indisponíveis): explica e leva aos Ajustes
+      if (e.code.contains('access_denied')) {
+        Get.find<AnalyticsService>().logProfileAction('document_permission_denied');
+        PermissionHelp.show(source);
+      } else {
+        snack(
+          title: 'Não foi possível abrir',
+          message: 'Tente a outra opção (Câmera ou Galeria).',
+          icon: Icons.error_outline_rounded,
+          color: const Color(0xFFEF4444),
+        );
+      }
+      return;
+    }
     if (picked == null) return;
     isUploadingDoc.value = true;
     try {
@@ -238,6 +270,7 @@ class HomeController extends GetxController {
         'status': 'submitted',
         'sentAt': FieldValue.serverTimestamp(),
       });
+      Get.find<AnalyticsService>().logDocumentUploaded(docType);
       snack(
         title: 'Documento enviado',
         message: 'Será analisado pela nossa equipe em até 24h.',
@@ -253,6 +286,65 @@ class HomeController extends GetxController {
       );
     } finally {
       isUploadingDoc.value = false;
+    }
+  }
+
+  Future<void> updateAddress(Map<String, String> address) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      await _firestore.collection('users').doc(uid).update({'address': address});
+      professionalAddress.assignAll(address);
+      Get.find<AnalyticsService>().logProfileAction('address_updated');
+      snack(
+        title: 'Endereço atualizado',
+        message: 'Suas informações foram salvas.',
+        icon: Icons.check_circle_rounded,
+        color: const Color(0xFF22C55E),
+      );
+    } catch (_) {
+      snack(
+        title: 'Erro',
+        message: 'Não foi possível salvar. Tente novamente.',
+        icon: Icons.error_outline_rounded,
+        color: const Color(0xFFEF4444),
+      );
+    }
+  }
+
+  /// Envia o e-mail de redefinição de senha do Firebase. Contas que entram por
+  /// Google/Apple não têm senha no VetVem.
+  Future<void> requestPasswordReset() async {
+    final user = _auth.currentUser;
+    final email = user?.email;
+    final hasPassword =
+        user?.providerData.any((p) => p.providerId == 'password') ?? false;
+    if (email == null || !hasPassword) {
+      snack(
+        title: 'Sem senha própria',
+        message:
+            'Sua conta entra com Google ou Apple, então não há senha do VetVem para alterar.',
+        icon: Icons.info_outline_rounded,
+        color: const Color(0xFFF59E0B),
+      );
+      return;
+    }
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      Get.find<AnalyticsService>().logProfileAction('password_reset_requested');
+      snack(
+        title: 'E-mail enviado',
+        message: 'Enviamos um link para $email. Abra-o para criar uma nova senha.',
+        icon: Icons.mark_email_read_outlined,
+        color: const Color(0xFF22C55E),
+      );
+    } catch (_) {
+      snack(
+        title: 'Erro',
+        message: 'Não foi possível enviar o e-mail agora. Tente novamente.',
+        icon: Icons.error_outline_rounded,
+        color: const Color(0xFFEF4444),
+      );
     }
   }
 
@@ -687,6 +779,11 @@ class HomeController extends GetxController {
       final area = AreaAtuacao.fromMap(
           (data['area_atuacao'] as Map?)?.cast<String, dynamic>());
       areaAtuacaoResumo.value = area.isEmpty ? '' : area.resumo;
+
+      final addr = (data['address'] as Map?) ?? {};
+      professionalAddress.assignAll({
+        for (final e in addr.entries) e.key.toString(): e.value?.toString() ?? '',
+      });
 
       // Carrega chaves PIX
       final keys = List<Map<String, dynamic>>.from(data['pixKeys'] ?? []);

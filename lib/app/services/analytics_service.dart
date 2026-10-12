@@ -29,4 +29,16 @@ class AnalyticsService extends GetxService {
       analytics.logEvent(
           name: 'appointment_completed',
           parameters: {'appointment_id': appointmentId});
+
+  // ── Funil de cadastro do profissional ─────────────────────────────
+  /// Passo do cadastro por e-mail em que a pessoa chegou (1 = primeiro).
+  Future<void> logRegisterStep(int step) =>
+      analytics.logEvent(name: 'register_step', parameters: {'step': step});
+
+  Future<void> logDocumentUploaded(String docType) => analytics.logEvent(
+      name: 'document_uploaded', parameters: {'doc_type': docType});
+
+  /// Ações de perfil sem parâmetros: address_updated, password_reset_requested,
+  /// document_permission_denied.
+  Future<void> logProfileAction(String name) => analytics.logEvent(name: name);
 }

@@ -12,6 +12,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/shimmer.dart';
 import '../auth/register/register_controller.dart' show RegisterController;
 import 'home_controller.dart';
+import 'profile_extras.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -241,7 +242,11 @@ class _InicioTab extends GetView<HomeController> {
                     if (status == 'approved' || status == 'active') {
                       return const SizedBox();
                     }
-                    return _StatusBanner(status: status);
+                    return _StatusBanner(
+                      status: status,
+                      missingDocs: controller.docsLoaded.value && controller.missingDocs,
+                      onSendDocs: () => controller.changeTab(4),
+                    );
                   }),
                   const SizedBox(height: 24),
                   const Text('Próximos atendimentos',
@@ -780,7 +785,13 @@ class _ProfileStatusBadge extends StatelessWidget {
 
 class _StatusBanner extends StatelessWidget {
   final String status;
-  const _StatusBanner({required this.status});
+  final bool missingDocs;
+  final VoidCallback onSendDocs;
+  const _StatusBanner({
+    required this.status,
+    required this.missingDocs,
+    required this.onSendDocs,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -816,7 +827,9 @@ class _StatusBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isSuspended ? 'Conta suspensa' : 'Conta em análise',
+                  isSuspended
+                      ? 'Conta suspensa'
+                      : (missingDocs ? 'Faltam seus documentos' : 'Conta em análise'),
                   style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
@@ -827,7 +840,9 @@ class _StatusBanner extends StatelessWidget {
                 Text(
                   isSuspended
                       ? 'Entre em contato com o suporte para reativar.'
-                      : 'Estamos verificando seus documentos. Em até 24h sua conta será ativada.',
+                      : (missingDocs
+                          ? 'Envie o RG/CNH e o CRMV para liberarmos sua conta.'
+                          : 'Estamos verificando seus documentos. Em até 24h sua conta será ativada.'),
                   style: TextStyle(
                       fontSize: 12,
                       color: isSuspended
@@ -837,6 +852,14 @@ class _StatusBanner extends StatelessWidget {
               ],
             ),
           ),
+          if (missingDocs && !isSuspended)
+            TextButton(
+              onPressed: onSendDocs,
+              child: const Text('Enviar',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF92400E))),
+            ),
         ],
       ),
     );
@@ -3293,6 +3316,11 @@ class _PerfilTabState extends State<_PerfilTab> {
                 ),
               );
             }),
+            const SizedBox(height: 14),
+
+            const ProfileAddressCard(),
+            const SizedBox(height: 14),
+            const ProfileSecurityCard(),
             const SizedBox(height: 14),
 
             // Documentos

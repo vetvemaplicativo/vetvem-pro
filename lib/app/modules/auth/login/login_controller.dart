@@ -193,6 +193,7 @@ class LoginController extends GetxController {
           'createdAt': FieldValue.serverTimestamp(),
           'platform': Platform.isIOS ? 'ios' : 'android',
         }, SetOptions(merge: true));
+        _analytics.logSignUp('google');
       }
 
       _analytics.logLogin('google');
@@ -273,6 +274,7 @@ class LoginController extends GetxController {
           'createdAt': FieldValue.serverTimestamp(),
           'platform': Platform.isIOS ? 'ios' : 'android',
         }, SetOptions(merge: true));
+        _analytics.logSignUp('apple');
       }
 
       _analytics.logLogin('apple');
