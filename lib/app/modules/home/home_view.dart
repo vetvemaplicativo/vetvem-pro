@@ -13,6 +13,7 @@ import '../../widgets/shimmer.dart';
 import '../auth/register/register_controller.dart' show RegisterController;
 import 'home_controller.dart';
 import 'profile_extras.dart';
+import 'service_sheet.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -1512,19 +1513,21 @@ class _InfoChip extends StatelessWidget {
 class _ServicosTab extends StatelessWidget {
   const _ServicosTab();
 
-  void _addService(BuildContext context, HomeController ctrl) {
-    final nameCtrl = TextEditingController();
-    final priceCtrl = TextEditingController();
+  void _openService(BuildContext context, HomeController ctrl, {int? index}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _AddServiceSheet(
-        nameCtrl: nameCtrl,
-        priceCtrl: priceCtrl,
-        onSave: (name, price, unit) {
-          if (name.isEmpty || price.isEmpty) return;
-          ctrl.addService(name, price, unit);
+      builder: (_) => ServiceSheet(
+        initial: index == null ? null : ctrl.services[index],
+        onSave: (name, price, unit, perAnimal, extra) {
+          if (index == null) {
+            ctrl.addService(name, price, unit,
+                perAnimal: perAnimal, additionalPrice: extra);
+          } else {
+            ctrl.updateService(index, name, price, unit,
+                perAnimal: perAnimal, additionalPrice: extra);
+          }
         },
       ),
     );
@@ -1555,7 +1558,10 @@ class _ServicosTab extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, i) {
                 final s = ctrl.services[i];
-                return Container(
+                return InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () => _openService(context, ctrl, index: i),
+                  child: Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -1592,6 +1598,18 @@ class _ServicosTab extends StatelessWidget {
                                     fontSize: 13,
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.w600)),
+                            if (s['perAnimal'] == '1')
+                              Padding(
+                                padding: const EdgeInsets.only(top: 3),
+                                child: Text(
+                                  (s['additionalPrice'] ?? '').isNotEmpty
+                                      ? 'Por animal · adicional R\$ ${s['additionalPrice']}'
+                                      : 'Por animal · mesmo valor em todos',
+                                  style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.textMedium),
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -1604,125 +1622,16 @@ class _ServicosTab extends StatelessWidget {
                       ),
                     ],
                   ),
+                  ),
                 );
               },
             )),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _addService(context, ctrl),
+        onPressed: () => _openService(context, ctrl),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Novo serviço',
             style: TextStyle(color: Colors.white, fontFamily: 'Poppins')),
-      ),
-    );
-  }
-}
-
-class _AddServiceSheet extends StatefulWidget {
-  final TextEditingController nameCtrl, priceCtrl;
-  final void Function(String, String, String) onSave;
-  const _AddServiceSheet(
-      {required this.nameCtrl,
-      required this.priceCtrl,
-      required this.onSave});
-
-  @override
-  State<_AddServiceSheet> createState() => _AddServiceSheetState();
-}
-
-class _AddServiceSheetState extends State<_AddServiceSheet> {
-  String _unit = 'consulta';
-  static const _units = [
-    'consulta', 'sessão', 'hora', 'dose', 'serviço', 'pacote'
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Novo serviço',
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textDark)),
-            const SizedBox(height: 16),
-            TextField(
-              controller: widget.nameCtrl,
-              decoration: const InputDecoration(
-                  hintText: 'Nome do serviço',
-                  prefixIcon: Icon(Icons.medical_services_outlined,
-                      size: 20, color: AppColors.textLight)),
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: widget.priceCtrl,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                        hintText: 'Preço (R\$)',
-                        prefixIcon: Icon(Icons.attach_money,
-                            size: 20,
-                            color: AppColors.textLight)),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: StatefulBuilder(
-                    builder: (_, ss) => Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                            color: const Color(0xFFE5E7EB)),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _unit,
-                          isExpanded: true,
-                          style: const TextStyle(
-                              fontSize: 13,
-                              color: AppColors.textDark,
-                              fontFamily: 'Poppins'),
-                          items: _units
-                              .map((u) => DropdownMenuItem(
-                                  value: u, child: Text(u)))
-                              .toList(),
-                          onChanged: (v) =>
-                              ss(() => _unit = v ?? 'consulta'),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                widget.onSave(widget.nameCtrl.text.trim(),
-                    widget.priceCtrl.text.trim(), _unit);
-                Get.back();
-              },
-              child: const Text('Salvar serviço'),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -77,8 +77,31 @@ class HomeController extends GetxController {
   // Serviços do profissional
   final services = <Map<String, String>>[].obs;
 
-  Future<void> addService(String name, String price, String unit) async {
-    services.add({'name': name, 'price': price, 'unit': unit});
+  // perAnimal: '1' quando o serviço é cobrado por animal; additionalPrice: valor
+  // do animal adicional (vazio = mesmo preço). Mapas ficam só com String na UI;
+  // _saveServices converte para os tipos certos no Firestore.
+  Future<void> addService(String name, String price, String unit,
+      {bool perAnimal = false, String additionalPrice = ''}) async {
+    services.add({
+      'name': name,
+      'price': price,
+      'unit': unit,
+      'perAnimal': perAnimal ? '1' : '',
+      'additionalPrice': perAnimal ? additionalPrice : '',
+    });
+    await _saveServices();
+  }
+
+  Future<void> updateService(int index, String name, String price, String unit,
+      {bool perAnimal = false, String additionalPrice = ''}) async {
+    if (index < 0 || index >= services.length) return;
+    services[index] = {
+      'name': name,
+      'price': price,
+      'unit': unit,
+      'perAnimal': perAnimal ? '1' : '',
+      'additionalPrice': perAnimal ? additionalPrice : '',
+    };
     await _saveServices();
   }
 
@@ -91,7 +114,16 @@ class HomeController extends GetxController {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
     await _firestore.collection('users').doc(uid).update({
-      'services': services.toList(),
+      'services': services
+          .map((s) => {
+                'name': s['name'] ?? '',
+                'price': s['price'] ?? '',
+                'unit': s['unit'] ?? '',
+                if (s['perAnimal'] == '1') 'perAnimal': true,
+                if ((s['additionalPrice'] ?? '').isNotEmpty)
+                  'additionalPrice': s['additionalPrice'],
+              })
+          .toList(),
     });
   }
 
@@ -710,10 +742,19 @@ class HomeController extends GetxController {
   Map<String, String> _apptToMap(String id, Map<String, dynamic> d) {
     final completedAt = d['completedAt'];
     final createdAt = d['createdAt'];
+    // Pedido com vários animais (serviço "por animal"): pets = lista, petCount = total.
+    final petsList = (d['pets'] as List?)?.whereType<Map>().toList() ?? const <Map>[];
+    final declaredCount = (d['petCount'] as num?)?.toInt() ?? 0;
+    final petCount = declaredCount > petsList.length
+        ? declaredCount
+        : (petsList.isEmpty ? 1 : petsList.length);
+    final firstPet = (d['petName'] ?? '').toString();
     return <String, String>{
       'id': id,
       'time': d['time'] ?? '',
-      'pet': d['petName'] ?? '',
+      'pet': petCount > 1 ? '$firstPet +${petCount - 1}' : firstPet,
+      'petCount': '$petCount',
+      'petsJson': jsonEncode(petsList),
       'petBreed': d['petBreed'] ?? '',
       'petSpecies': d['petSpecies'] ?? 'dog',
       'petSex': d['petSex'] ?? '',
@@ -800,6 +841,8 @@ class HomeController extends GetxController {
           'name': s['name']?.toString() ?? '',
           'price': s['price']?.toString() ?? '',
           'unit': s['unit']?.toString() ?? '',
+          'perAnimal': s['perAnimal'] == true ? '1' : '',
+          'additionalPrice': s['additionalPrice']?.toString() ?? '',
         }).toList());
       }
 

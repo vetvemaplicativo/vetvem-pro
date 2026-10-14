@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -369,6 +370,11 @@ class _AppointmentDetailViewState extends State<AppointmentDetailView> {
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.textDark)),
+                            if ((int.tryParse(appt['petCount'] ?? '1') ?? 1) > 1)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 6),
+                                child: _MultiPets(appt: appt),
+                              ),
                             if (appt['petBreed'] != null)
                               Text(appt['petBreed']!,
                                   style: const TextStyle(
@@ -1088,6 +1094,55 @@ class _InfoIcon extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
       ),
       child: Icon(icon, color: color, size: 20),
+    );
+  }
+}
+
+/// Lista dos animais de um pedido "por animal": nome, espécie e idade.
+class _MultiPets extends StatelessWidget {
+  final Map<String, String> appt;
+  const _MultiPets({required this.appt});
+
+  @override
+  Widget build(BuildContext context) {
+    final count = int.tryParse(appt['petCount'] ?? '1') ?? 1;
+    List<Map<String, dynamic>> pets = const [];
+    try {
+      pets = (jsonDecode(appt['petsJson'] ?? '[]') as List)
+          .whereType<Map>()
+          .map((m) => m.cast<String, dynamic>())
+          .toList();
+    } catch (_) {}
+    String species(dynamic s) =>
+        s == 'cat' ? 'Gato' : s == 'dog' ? 'Cão' : 'Outro';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFF6B2B).withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text('$count animais neste pedido',
+              style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFFFF6B2B))),
+        ),
+        const SizedBox(height: 6),
+        for (final p in pets)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Text(
+              '• ${p['name'] ?? ''} · ${species(p['species'])}${(p['age'] ?? '').toString().isNotEmpty ? ' · ${p['age']}' : ''}',
+              style: const TextStyle(fontSize: 12, color: AppColors.textMedium),
+            ),
+          ),
+        if (pets.length < count)
+          Text('+ ${count - pets.length} sem cadastro (só quantidade)',
+              style: const TextStyle(fontSize: 12, color: AppColors.textMedium)),
+      ],
     );
   }
 }
