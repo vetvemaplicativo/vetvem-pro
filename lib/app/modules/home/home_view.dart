@@ -1282,7 +1282,7 @@ class _HistoricoContentState extends State<_HistoricoContent> {
               };
               if (!matchFilter) return false;
               if (_searchQuery.isEmpty) return true;
-              final pet = (a['pet'] ?? '').toLowerCase();
+              final pet = '${a['pet'] ?? ''} ${_allPetNames(a)}'.toLowerCase();
               final owner = (a['owner'] ?? '').toLowerCase();
               return pet.contains(_searchQuery) || owner.contains(_searchQuery);
             }).toList()
@@ -1598,13 +1598,14 @@ class _ServicosTab extends StatelessWidget {
                                     fontSize: 13,
                                     color: AppColors.primary,
                                     fontWeight: FontWeight.w600)),
-                            if (s['perAnimal'] == '1')
+                            if ((s['price'] ?? '').isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.only(top: 3),
                                 child: Text(
-                                  (s['additionalPrice'] ?? '').isNotEmpty
-                                      ? 'Por animal · adicional R\$ ${s['additionalPrice']}'
-                                      : 'Por animal · mesmo valor em todos',
+                                  s['perAnimal'] == '1' &&
+                                          (s['additionalPrice'] ?? '').isNotEmpty
+                                      ? '1º animal R\$ ${s['price']} · adicionais R\$ ${s['additionalPrice']}'
+                                      : 'Vários animais: R\$ ${s['price']} cada',
                                   style: const TextStyle(
                                       fontSize: 11,
                                       color: AppColors.textMedium),
@@ -3694,5 +3695,16 @@ class _ProfileRow extends StatelessWidget {
                 fontSize: 13, color: AppColors.textMedium)),
       ],
     );
+  }
+}
+
+/// Nomes de todos os animais de um pedido com vários animais (para a busca).
+String _allPetNames(Map<String, String> appt) {
+  try {
+    return (jsonDecode(appt['petsJson'] ?? '[]') as List)
+        .map((p) => (p is Map ? (p['name'] ?? '') : '').toString())
+        .join(' ');
+  } catch (_) {
+    return '';
   }
 }

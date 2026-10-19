@@ -5,10 +5,10 @@ import '../../theme/app_theme.dart';
 typedef ServiceSave = void Function(
     String name, String price, String unit, bool perAnimal, String additionalPrice);
 
-/// Cadastro/edição de serviço. "Cobrar por animal" faz o tutor poder escolher
-/// vários animais no mesmo pedido (vacina, vermífugo...). O servidor calcula o
-/// total: preço no 1º animal + (animais - 1) x valor do adicional (se vazio,
-/// o mesmo preço para todos).
+/// Cadastro/edição de serviço. Todo serviço aceita vários animais no mesmo
+/// pedido e, por padrão, cada animal paga o preço cheio. A chave abaixo ("desconto
+/// nos adicionais") permite cobrar menos a partir do 2º animal: o servidor calcula
+/// total = preço no 1º animal + (animais - 1) x valor do adicional.
 class ServiceSheet extends StatefulWidget {
   final Map<String, String>? initial; // != null: editando
   final ServiceSave onSave;
@@ -56,9 +56,14 @@ class _ServiceSheetState extends State<ServiceSheet> {
     if (price == null || price <= 0) {
       return 'Preencha o preço acima para ver um exemplo.';
     }
-    final extra = (_extra.text.trim().isEmpty ? null : _num(_extra.text)) ?? price;
-    final total = price + 2 * extra;
-    return 'Exemplo com 3 animais: ${_money(price)} + 2 × ${_money(extra)} = ${_money(total)}';
+    if (!_perAnimal) {
+      return 'Exemplo com 3 animais: 3 × ${_money(price)} = ${_money(price * 3)}';
+    }
+    final extra = _num(_extra.text);
+    if (extra == null || _extra.text.trim().isEmpty) {
+      return 'Informe o valor de cada animal adicional para ver o exemplo.';
+    }
+    return 'Exemplo com 3 animais: ${_money(price)} + 2 × ${_money(extra)} = ${_money(price + 2 * extra)}';
   }
 
   @override
@@ -140,10 +145,10 @@ class _ServiceSheetState extends State<ServiceSheet> {
                 value: _perAnimal,
                 activeThumbColor: AppColors.primary,
                 onChanged: (v) => setState(() => _perAnimal = v),
-                title: const Text('Cobrar por animal',
+                title: const Text('Dar desconto nos animais adicionais',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                 subtitle: const Text(
-                  'Use em serviços como vacina e vermífugo. O tutor poderá escolher vários animais no mesmo pedido.',
+                  'Por padrão, cada animal paga o preço cheio do serviço. Ative para cobrar menos a partir do 2º animal.',
                   style: TextStyle(fontSize: 12, color: AppColors.textMedium),
                 ),
               ),
@@ -155,38 +160,40 @@ class _ServiceSheetState extends State<ServiceSheet> {
                       const TextInputType.numberWithOptions(decimal: true),
                   onChanged: (_) => setState(() {}),
                   decoration: const InputDecoration(
-                      hintText: 'Valor de cada animal adicional (opcional)',
+                      hintText: 'Valor de cada animal adicional (R\$)',
                       prefixIcon: Icon(Icons.attach_money,
                           size: 20, color: AppColors.textLight)),
                 ),
-                const SizedBox(height: 10),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(_example,
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'O preço acima vale para o 1º animal. Se quiser dar desconto para os demais, informe o valor de cada animal adicional. '
-                        'Deixe em branco para cobrar o mesmo valor em todos.\n'
-                        'Acima de 10 animais, o app sugere ao tutor pedir um orçamento.',
-                        style: TextStyle(
-                            fontSize: 11,
-                            height: 1.4,
-                            color: AppColors.textMedium),
-                      ),
-                    ],
-                  ),
-                ),
               ],
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(_example,
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 6),
+                    Text(
+                      _perAnimal
+                          ? 'O preço acima vale para o 1º animal e o valor adicional, para os demais. '
+                              'Acima de 10 animais, o app sugere ao tutor pedir um orçamento.'
+                          : 'O tutor pode incluir vários animais no mesmo pedido, e cada um paga o preço do serviço. '
+                              'Acima de 10 animais, o app sugere ao tutor pedir um orçamento.',
+                      style: const TextStyle(
+                          fontSize: 11,
+                          height: 1.4,
+                          color: AppColors.textMedium),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: () {
@@ -197,11 +204,9 @@ class _ServiceSheetState extends State<ServiceSheet> {
                         snackPosition: SnackPosition.BOTTOM);
                     return;
                   }
-                  if (_perAnimal &&
-                      _extra.text.trim().isNotEmpty &&
-                      _num(_extra.text) == null) {
-                    Get.snackbar('Valor inválido',
-                        'O valor do animal adicional precisa ser um número.',
+                  if (_perAnimal && _num(_extra.text) == null) {
+                    Get.snackbar('Informe o valor adicional',
+                        'Digite o valor de cada animal adicional ou desligue o desconto.',
                         snackPosition: SnackPosition.BOTTOM);
                     return;
                   }

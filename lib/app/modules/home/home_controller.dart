@@ -566,7 +566,7 @@ class HomeController extends GetxController {
     final status = d['status'] as String? ?? '';
     return {
       'id': id,
-      'name': '${d['serviceName'] ?? ''} · ${d['petName'] ?? ''}',
+      'name': '${d['serviceName'] ?? ''} · ${_petLabel(d, '')}',
       'serviceName': d['serviceName'] ?? '',
       'date': d['date'] ?? '',
       'time': d['time'] ?? '',
@@ -739,6 +739,16 @@ class HomeController extends GetxController {
   // divergir — inclusive corrige um bug real: completedAt/createdAt são
   // Timestamp no Firestore, e `.toString()` direto produz algo ilegível
   // tipo "Timestamp(seconds=..., nanoseconds=...)"; convertemos para ISO8601.
+  /// Nome do pet para textos: "Mingau" ou "Mingau +12" (pedido com vários animais).
+  String _petLabel(Map<String, dynamic> d, String fallback) {
+    final first = (d['petName'] ?? '').toString().trim();
+    final listed = (d['pets'] as List?)?.length ?? 0;
+    final declared = (d['petCount'] as num?)?.toInt() ?? 0;
+    final n = declared > listed ? declared : (listed > 0 ? listed : 1);
+    if (n <= 1) return first.isEmpty ? fallback : first;
+    return first.isEmpty ? '$n animais' : '$first +${n - 1}';
+  }
+
   Map<String, String> _apptToMap(String id, Map<String, dynamic> d) {
     final completedAt = d['completedAt'];
     final createdAt = d['createdAt'];
@@ -885,7 +895,7 @@ class HomeController extends GetxController {
       await NotificationService.sendTo(
         toUid: tutorId,
         title: '✅ Consulta confirmada!',
-        body: '${professionalName.value} confirmou a consulta de ${d['petName'] ?? 'seu pet'}. Nos vemos em breve! 🐾',
+        body: '${professionalName.value} confirmou a consulta de ${_petLabel(d, 'seu pet')}. Nos vemos em breve! 🐾',
       );
     }
     snack(
@@ -912,7 +922,7 @@ class HomeController extends GetxController {
       await NotificationService.sendTo(
         toUid: tutorId,
         title: 'Consulta não confirmada',
-        body: '${professionalName.value} não pôde confirmar a consulta de ${d['petName'] ?? 'seu pet'}. O valor pago será estornado. Busque outro profissional.',
+        body: '${professionalName.value} não pôde confirmar a consulta de ${_petLabel(d, 'seu pet')}. O valor pago será estornado. Busque outro profissional.',
       );
     }
     snack(
@@ -986,7 +996,7 @@ class HomeController extends GetxController {
       await NotificationService.sendTo(
         toUid: uid,
         title: '💰 Pagamento confirmado!',
-        body: 'O valor da consulta de ${d['petName'] ?? 'seu pet'} será repassado em até 2 dias úteis.',
+        body: 'O valor da consulta de ${_petLabel(d, 'seu pet')} será repassado em até 2 dias úteis.',
       );
     }
     // Notifica o tutor que a consulta foi concluída
@@ -995,7 +1005,7 @@ class HomeController extends GetxController {
       await NotificationService.sendTo(
         toUid: tutorId,
         title: '🐾 Consulta concluída!',
-        body: 'A consulta de ${d['petName'] ?? 'seu pet'} foi concluída. Que tal avaliar o atendimento?',
+        body: 'A consulta de ${_petLabel(d, 'seu pet')} foi concluída. Que tal avaliar o atendimento?',
       );
     }
     snack(
