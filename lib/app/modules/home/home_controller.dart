@@ -9,6 +9,7 @@ import '../../routes/app_routes.dart';
 import '../../services/analytics_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/password_reset_service.dart';
+import 'service_sheet.dart' show ServiceInput;
 import '../../widgets/permission_help.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:flutter/material.dart'
@@ -77,54 +78,67 @@ class HomeController extends GetxController {
   // Serviços do profissional
   final services = <Map<String, String>>[].obs;
 
-  // perAnimal: '1' quando o serviço é cobrado por animal; additionalPrice: valor
-  // do animal adicional (vazio = mesmo preço). Mapas ficam só com String na UI;
-  // _saveServices converte para os tipos certos no Firestore.
-  Future<void> addService(String name, String price, String unit,
-      {bool perAnimal = false, String additionalPrice = ''}) async {
-    services.add({
-      'name': name,
-      'price': price,
-      'unit': unit,
-      'perAnimal': perAnimal ? '1' : '',
-      'additionalPrice': perAnimal ? additionalPrice : '',
-    });
+  // Campos do serviço na UI ficam como texto: perAnimal '1' (desconto nos
+  // adicionais), additionalPrice, travelFee (taxa fixa) e instructions
+  // (orientações ao tutor). _saveServices converte para os tipos do Firestore e
+  // PRESERVA qualquer outro campo que o servidor/versões futuras tenham gravado
+  // no serviço (ex.: maxAnimals) — antes o app regravava só os campos que conhecia
+  // e apagava o resto em silêncio.
+  final _serviceRaw = <Map<String, dynamic>>[];
+
+  Map<String, String> _serviceToUi(ServiceInput i) => {
+        'name': i.name,
+        'price': i.price,
+        'unit': i.unit,
+        'perAnimal': i.perAnimal ? '1' : '',
+        'additionalPrice': i.perAnimal ? i.additionalPrice : '',
+        'travelFee': i.travelFee,
+        'instructions': i.instructions,
+      };
+
+  Future<void> addService(ServiceInput input) async {
+    services.add(_serviceToUi(input));
+    _serviceRaw.add(<String, dynamic>{});
     await _saveServices();
   }
 
-  Future<void> updateService(int index, String name, String price, String unit,
-      {bool perAnimal = false, String additionalPrice = ''}) async {
+  Future<void> updateService(int index, ServiceInput input) async {
     if (index < 0 || index >= services.length) return;
-    services[index] = {
-      'name': name,
-      'price': price,
-      'unit': unit,
-      'perAnimal': perAnimal ? '1' : '',
-      'additionalPrice': perAnimal ? additionalPrice : '',
-    };
+    services[index] = _serviceToUi(input);
     await _saveServices();
   }
 
   Future<void> removeService(int index) async {
     services.removeAt(index);
+    if (index < _serviceRaw.length) _serviceRaw.removeAt(index);
     await _saveServices();
   }
 
   Future<void> _saveServices() async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return;
-    await _firestore.collection('users').doc(uid).update({
-      'services': services
-          .map((s) => {
-                'name': s['name'] ?? '',
-                'price': s['price'] ?? '',
-                'unit': s['unit'] ?? '',
-                if (s['perAnimal'] == '1') 'perAnimal': true,
-                if ((s['additionalPrice'] ?? '').isNotEmpty)
-                  'additionalPrice': s['additionalPrice'],
-              })
-          .toList(),
-    });
+    final out = <Map<String, dynamic>>[];
+    for (var i = 0; i < services.length; i++) {
+      final s = services[i];
+      final m = Map<String, dynamic>.from(
+          i < _serviceRaw.length ? _serviceRaw[i] : const <String, dynamic>{});
+      m['name'] = s['name'] ?? '';
+      m['price'] = s['price'] ?? '';
+      m['unit'] = s['unit'] ?? '';
+      void setOrRemove(String key, dynamic v, bool keep) =>
+          keep ? m[key] = v : m.remove(key);
+      setOrRemove('perAnimal', true, s['perAnimal'] == '1');
+      setOrRemove('additionalPrice', s['additionalPrice'],
+          (s['additionalPrice'] ?? '').isNotEmpty);
+      setOrRemove('travelFee', s['travelFee'], (s['travelFee'] ?? '').isNotEmpty);
+      setOrRemove('instructions', s['instructions'],
+          (s['instructions'] ?? '').isNotEmpty);
+      out.add(m);
+    }
+    await _firestore.collection('users').doc(uid).update({'services': out});
+    _serviceRaw
+      ..clear()
+      ..addAll(out.map((m) => Map<String, dynamic>.from(m)));
   }
 
   // Chaves PIX
@@ -518,6 +532,9 @@ class HomeController extends GetxController {
       services.assignAll(
           List<Map<String, String>>.from(
               (args['services'] as List).map((e) => Map<String, String>.from(e))));
+      _serviceRaw
+        ..clear()
+        ..addAll(services.map((_) => <String, dynamic>{}));
     }
     _loadProfile();
     _listenAppointments();
@@ -739,6 +756,41 @@ class HomeController extends GetxController {
   // divergir — inclusive corrige um bug real: completedAt/createdAt são
   // Timestamp no Firestore, e `.toString()` direto produz algo ilegível
   // tipo "Timestamp(seconds=..., nanoseconds=...)"; convertemos para ISO8601.
+  /// Sugere até 3 horários ao tutor (função proposeNewTimes). Retorna null se
+  /// deu certo, ou a mensagem de erro para mostrar ao veterinário.
+  Future<String?> proposeNewTimes(
+      String appointmentId, List<Map<String, String>> options) async {
+    try {
+      final token = await _auth.currentUser?.getIdToken();
+      if (token == null) return 'Faça login novamente.';
+      final res = await http
+          .post(
+            Uri.parse(
+                'https://southamerica-east1-vetvem-18bf4.cloudfunctions.net/proposeNewTimes'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({'appointmentId': appointmentId, 'options': options}),
+          )
+          .timeout(const Duration(seconds: 25));
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      if (res.statusCode == 200 && body['ok'] == true) {
+        Get.find<AnalyticsService>().logProfileAction('times_suggested');
+        snack(
+          title: 'Sugestões enviadas',
+          message: 'O tutor foi avisado e vai escolher um dos horários.',
+          icon: Icons.schedule_send_rounded,
+          color: const Color(0xFFF59E0B),
+        );
+        return null;
+      }
+      return (body['error'] ?? 'Não foi possível enviar. Tente novamente.').toString();
+    } catch (_) {
+      return 'Sem conexão. Verifique a internet e tente novamente.';
+    }
+  }
+
   /// Nome do pet para textos: "Mingau" ou "Mingau +12" (pedido com vários animais).
   String _petLabel(Map<String, dynamic> d, String fallback) {
     final first = (d['petName'] ?? '').toString().trim();
@@ -764,6 +816,10 @@ class HomeController extends GetxController {
       'time': d['time'] ?? '',
       'pet': petCount > 1 ? '$firstPet +${petCount - 1}' : firstPet,
       'petCount': '$petCount',
+      'canChooseTimes': d['canChooseTimes'] == true ? '1' : '',
+      'bookingOrigin': (d['bookingOrigin'] ?? '').toString(),
+      'proposalStatus': (d['proposalStatus'] ?? '').toString(),
+      'proposalDeadline': '${d['proposalDeadline'] ?? ''}',
       'petsJson': jsonEncode(petsList),
       'petBreed': d['petBreed'] ?? '',
       'petSpecies': d['petSpecies'] ?? 'dog',
@@ -853,7 +909,12 @@ class HomeController extends GetxController {
           'unit': s['unit']?.toString() ?? '',
           'perAnimal': s['perAnimal'] == true ? '1' : '',
           'additionalPrice': s['additionalPrice']?.toString() ?? '',
+          'travelFee': s['travelFee']?.toString() ?? '',
+          'instructions': s['instructions']?.toString() ?? '',
         }).toList());
+        _serviceRaw
+          ..clear()
+          ..addAll(srvs.map((s) => Map<String, dynamic>.from(s)));
       }
 
       if (data['accountStatus'] != null) {

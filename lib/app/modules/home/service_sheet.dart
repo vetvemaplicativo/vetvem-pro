@@ -2,13 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../theme/app_theme.dart';
 
-typedef ServiceSave = void Function(
-    String name, String price, String unit, bool perAnimal, String additionalPrice);
+/// Dados de um serviço vindos do formulário (valores em texto, como o app guarda).
+class ServiceInput {
+  final String name, price, unit;
+  final bool perAnimal; // "desconto nos animais adicionais"
+  final String additionalPrice; // só vale com perAnimal
+  final String travelFee; // taxa de deslocamento fixa ('' = sem taxa)
+  final String instructions; // orientações ao tutor ('' = sem orientações)
+  const ServiceInput({
+    required this.name,
+    required this.price,
+    required this.unit,
+    this.perAnimal = false,
+    this.additionalPrice = '',
+    this.travelFee = '',
+    this.instructions = '',
+  });
+}
+
+typedef ServiceSave = void Function(ServiceInput input);
 
 /// Cadastro/edição de serviço. Todo serviço aceita vários animais no mesmo
-/// pedido e, por padrão, cada animal paga o preço cheio. A chave abaixo ("desconto
-/// nos adicionais") permite cobrar menos a partir do 2º animal: o servidor calcula
-/// total = preço no 1º animal + (animais - 1) x valor do adicional.
+/// pedido e, por padrão, cada animal paga o preço cheio; a chave de desconto
+/// permite cobrar menos a partir do 2º animal. Opcionalmente o serviço cobra uma
+/// taxa de deslocamento FIXA por visita e/ou envia orientações ao tutor (ex.:
+/// jejum). O servidor calcula o total: preço no 1º animal + (animais - 1) x
+/// adicional + taxa de deslocamento (uma vez só).
 class ServiceSheet extends StatefulWidget {
   final Map<String, String>? initial; // != null: editando
   final ServiceSave onSave;
@@ -20,12 +39,17 @@ class ServiceSheet extends StatefulWidget {
 
 class _ServiceSheetState extends State<ServiceSheet> {
   static const _units = ['consulta', 'sessão', 'hora', 'dose', 'serviço', 'pacote'];
+  static const _maxInstructions = 240;
 
   late final TextEditingController _name;
   late final TextEditingController _price;
   late final TextEditingController _extra;
+  late final TextEditingController _travel;
+  late final TextEditingController _instructions;
   late String _unit;
   late bool _perAnimal;
+  late bool _travelOn;
+  late bool _instructionsOn;
 
   @override
   void initState() {
@@ -34,8 +58,12 @@ class _ServiceSheetState extends State<ServiceSheet> {
     _name = TextEditingController(text: s?['name'] ?? '');
     _price = TextEditingController(text: s?['price'] ?? '');
     _extra = TextEditingController(text: s?['additionalPrice'] ?? '');
+    _travel = TextEditingController(text: s?['travelFee'] ?? '');
+    _instructions = TextEditingController(text: s?['instructions'] ?? '');
     _unit = _units.contains(s?['unit']) ? s!['unit']! : 'consulta';
     _perAnimal = s?['perAnimal'] == '1';
+    _travelOn = (s?['travelFee'] ?? '').isNotEmpty;
+    _instructionsOn = (s?['instructions'] ?? '').isNotEmpty;
   }
 
   @override
@@ -43,6 +71,8 @@ class _ServiceSheetState extends State<ServiceSheet> {
     _name.dispose();
     _price.dispose();
     _extra.dispose();
+    _travel.dispose();
+    _instructions.dispose();
     super.dispose();
   }
 
@@ -56,15 +86,42 @@ class _ServiceSheetState extends State<ServiceSheet> {
     if (price == null || price <= 0) {
       return 'Preencha o preço acima para ver um exemplo.';
     }
-    if (!_perAnimal) {
-      return 'Exemplo com 3 animais: 3 × ${_money(price)} = ${_money(price * 3)}';
+    double extra = price;
+    if (_perAnimal) {
+      final e = _num(_extra.text);
+      if (e == null || _extra.text.trim().isEmpty) {
+        return 'Informe o valor de cada animal adicional para ver o exemplo.';
+      }
+      extra = e;
     }
-    final extra = _num(_extra.text);
-    if (extra == null || _extra.text.trim().isEmpty) {
-      return 'Informe o valor de cada animal adicional para ver o exemplo.';
-    }
-    return 'Exemplo com 3 animais: ${_money(price)} + 2 × ${_money(extra)} = ${_money(price + 2 * extra)}';
+    final travel = _travelOn ? (_num(_travel.text) ?? 0) : 0.0;
+    final animals = price + 2 * extra;
+    final total = animals + travel;
+    final head = _perAnimal
+        ? '${_money(price)} + 2 × ${_money(extra)}'
+        : '3 × ${_money(price)}';
+    final tail = travel > 0 ? ' + deslocamento ${_money(travel)}' : '';
+    return 'Exemplo com 3 animais: $head$tail = ${_money(total)}';
   }
+
+  InputDecoration _dec(String hint) => InputDecoration(
+        hintText: hint,
+        prefixIcon: const Icon(Icons.attach_money,
+            size: 20, color: AppColors.textLight),
+      );
+
+  Widget _hint(String text) => Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(top: 8, bottom: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(text,
+            style: const TextStyle(
+                fontSize: 11, height: 1.4, color: AppColors.textMedium)),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -104,10 +161,7 @@ class _ServiceSheetState extends State<ServiceSheet> {
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
                       onChanged: (_) => setState(() {}),
-                      decoration: const InputDecoration(
-                          hintText: 'Preço (R\$)',
-                          prefixIcon: Icon(Icons.attach_money,
-                              size: 20, color: AppColors.textLight)),
+                      decoration: _dec('Preço (R\$)'),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -140,6 +194,8 @@ class _ServiceSheetState extends State<ServiceSheet> {
                 ],
               ),
               const SizedBox(height: 8),
+
+              // ── Desconto nos animais adicionais ─────────────────────────
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 value: _perAnimal,
@@ -152,22 +208,73 @@ class _ServiceSheetState extends State<ServiceSheet> {
                   style: TextStyle(fontSize: 12, color: AppColors.textMedium),
                 ),
               ),
-              if (_perAnimal) ...[
-                const SizedBox(height: 6),
+              if (_perAnimal)
                 TextField(
                   controller: _extra,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   onChanged: (_) => setState(() {}),
-                  decoration: const InputDecoration(
-                      hintText: 'Valor de cada animal adicional (R\$)',
-                      prefixIcon: Icon(Icons.attach_money,
-                          size: 20, color: AppColors.textLight)),
+                  decoration: _dec('Valor de cada animal adicional (R\$)'),
+                ),
+
+              // ── Taxa de deslocamento ────────────────────────────────────
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _travelOn,
+                activeThumbColor: AppColors.primary,
+                onChanged: (v) => setState(() => _travelOn = v),
+                title: const Text('Cobrar taxa de deslocamento',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                subtitle: const Text(
+                  'Um valor fixo, somado ao serviço, para ajudar no seu deslocamento até o tutor.',
+                  style: TextStyle(fontSize: 12, color: AppColors.textMedium),
+                ),
+              ),
+              if (_travelOn) ...[
+                TextField(
+                  controller: _travel,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  onChanged: (_) => setState(() {}),
+                  decoration: _dec('Valor da taxa de deslocamento (R\$)'),
+                ),
+                _hint(
+                  'É um valor FIXO por visita (cobrado uma vez, mesmo com vários animais). '
+                  'O VetVem não calcula a distância: defina um valor médio para a sua região. '
+                  'O tutor vê a taxa separada do serviço, e a comissão do VetVem incide sobre o valor total.',
                 ),
               ],
-              const SizedBox(height: 10),
+
+              // ── Orientações ao tutor ────────────────────────────────────
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _instructionsOn,
+                activeThumbColor: AppColors.primary,
+                onChanged: (v) => setState(() => _instructionsOn = v),
+                title: const Text('Orientar o tutor antes da consulta',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                subtitle: const Text(
+                  'Aparece para o tutor antes de pagar e é enviado quando você confirmar o pedido (ex.: jejum, medicamentos).',
+                  style: TextStyle(fontSize: 12, color: AppColors.textMedium),
+                ),
+              ),
+              if (_instructionsOn)
+                TextField(
+                  controller: _instructions,
+                  maxLength: _maxInstructions,
+                  maxLines: 4,
+                  minLines: 3,
+                  onChanged: (_) => setState(() {}),
+                  decoration: const InputDecoration(
+                    hintText:
+                        'Ex.: Mantenha o animal em jejum de 6 horas antes do exame. Água à vontade.',
+                  ),
+                ),
+
+              // ── Exemplo ─────────────────────────────────────────────────
               Container(
                 width: double.infinity,
+                margin: const EdgeInsets.only(top: 6),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.08),
@@ -180,40 +287,18 @@ class _ServiceSheetState extends State<ServiceSheet> {
                         style: const TextStyle(
                             fontSize: 12, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 6),
-                    Text(
-                      _perAnimal
-                          ? 'O preço acima vale para o 1º animal e o valor adicional, para os demais. '
-                              'Acima de 10 animais, o app sugere ao tutor pedir um orçamento.'
-                          : 'O tutor pode incluir vários animais no mesmo pedido, e cada um paga o preço do serviço. '
-                              'Acima de 10 animais, o app sugere ao tutor pedir um orçamento.',
-                      style: const TextStyle(
-                          fontSize: 11,
-                          height: 1.4,
-                          color: AppColors.textMedium),
+                    const Text(
+                      'O tutor pode incluir vários animais no mesmo pedido. '
+                      'Acima de 10 animais, o app sugere ao tutor pedir um orçamento.',
+                      style: TextStyle(
+                          fontSize: 11, height: 1.4, color: AppColors.textMedium),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () {
-                  final name = _name.text.trim();
-                  final price = _price.text.trim();
-                  if (name.isEmpty || price.isEmpty) {
-                    Get.snackbar('Campos obrigatórios', 'Informe o nome e o preço.',
-                        snackPosition: SnackPosition.BOTTOM);
-                    return;
-                  }
-                  if (_perAnimal && _num(_extra.text) == null) {
-                    Get.snackbar('Informe o valor adicional',
-                        'Digite o valor de cada animal adicional ou desligue o desconto.',
-                        snackPosition: SnackPosition.BOTTOM);
-                    return;
-                  }
-                  widget.onSave(name, price, _unit, _perAnimal,
-                      _perAnimal ? _extra.text.trim() : '');
-                  Get.back();
-                },
+                onPressed: _save,
                 child: const Text('Salvar serviço'),
               ),
             ],
@@ -221,5 +306,41 @@ class _ServiceSheetState extends State<ServiceSheet> {
         ),
       ),
     );
+  }
+
+  void _save() {
+    final name = _name.text.trim();
+    final price = _price.text.trim();
+    void warn(String t, String m) =>
+        Get.snackbar(t, m, snackPosition: SnackPosition.BOTTOM);
+    if (name.isEmpty || price.isEmpty) {
+      warn('Campos obrigatórios', 'Informe o nome e o preço.');
+      return;
+    }
+    if (_perAnimal && _num(_extra.text) == null) {
+      warn('Informe o valor adicional',
+          'Digite o valor de cada animal adicional ou desligue o desconto.');
+      return;
+    }
+    if (_travelOn && (_num(_travel.text) ?? 0) <= 0) {
+      warn('Informe a taxa de deslocamento',
+          'Digite um valor maior que zero ou desligue a taxa.');
+      return;
+    }
+    if (_instructionsOn && _instructions.text.trim().isEmpty) {
+      warn('Escreva a orientação',
+          'Digite o texto para o tutor ou desligue as orientações.');
+      return;
+    }
+    widget.onSave(ServiceInput(
+      name: name,
+      price: price,
+      unit: _unit,
+      perAnimal: _perAnimal,
+      additionalPrice: _perAnimal ? _extra.text.trim() : '',
+      travelFee: _travelOn ? _travel.text.trim() : '',
+      instructions: _instructionsOn ? _instructions.text.trim() : '',
+    ));
+    Get.back();
   }
 }

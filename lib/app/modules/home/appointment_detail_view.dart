@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'pending_actions.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -49,10 +50,15 @@ class _AppointmentDetailViewState extends State<AppointmentDetailView> {
       _complementos = List<Map<String, dynamic>>.from(data?['complementos'] ?? []);
       _prontuarioLoaded = true;
       if (data?['status'] != null) appt['status'] = data!['status'];
+      appt['proposalStatus'] = (data?['proposalStatus'] ?? '').toString();
+      appt['proposalDeadline'] = '${data?['proposalDeadline'] ?? ''}';
+      appt['canChooseTimes'] = data?['canChooseTimes'] == true ? '1' : '';
+      appt['bookingOrigin'] = (data?['bookingOrigin'] ?? '').toString();
     });
 
     final status = data?['status'] as String? ?? '';
-    if (status == 'pending_confirmation') {
+    if (status == 'pending_confirmation' &&
+        data?['proposalStatus'] != 'awaiting_tutor') {
       // Countdown real a partir do createdAt do servidor.
       final created = (data?['createdAt'] as Timestamp?)?.toDate();
       if (created != null) {
@@ -549,57 +555,27 @@ class _AppointmentDetailViewState extends State<AppointmentDetailView> {
             ),
           ),
 
-          // Botões de ação
-          if (isPending && !_expired)
+          // Botões de ação (aceitar / sugerir outros horários / recusar)
+          if (isPending && (!_expired || appt['proposalStatus'] == 'awaiting_tutor'))
             Container(
               padding: EdgeInsets.fromLTRB(
-                  20, 12, 20, 12 + MediaQuery.of(context).padding.bottom),
+                  20, 14, 20, 14 + MediaQuery.of(context).padding.bottom),
               decoration: const BoxDecoration(
                 color: Colors.white,
                 border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _onReject(context),
-                      icon: const Icon(Icons.close_rounded, size: 18),
-                      label: const Text('Recusar'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.error,
-                        side: const BorderSide(color: AppColors.error),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton.icon(
-                      onPressed: _confirming ? null : () => _onConfirm(),
-                      icon: _confirming
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 2, color: Colors.white),
-                            )
-                          : const Icon(Icons.check_rounded, size: 18),
-                      label: Text(
-                          _confirming ? 'Confirmando...' : 'Confirmar consulta'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF22C55E),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                ],
+              child: PendingActions(
+                appt: appt,
+                busy: _confirming,
+                onAccept: _onConfirm,
+                onReject: () => _onReject(context),
+                onSuggest: () async {
+                  final sent = await showSuggestTimes(context, appt);
+                  if (sent && mounted) {
+                    setState(() => appt['proposalStatus'] = 'awaiting_tutor');
+                    _loadProntuario();
+                  }
+                },
               ),
             ),
 

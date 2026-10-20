@@ -14,6 +14,7 @@ import '../auth/register/register_controller.dart' show RegisterController;
 import 'home_controller.dart';
 import 'profile_extras.dart';
 import 'service_sheet.dart';
+import 'pending_actions.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -521,7 +522,10 @@ class _AppointmentCard extends GetView<HomeController> {
               : const Color(0xFFE5E7EB),
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+      Row(
         children: [
           Container(
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
@@ -595,33 +599,20 @@ class _AppointmentCard extends GetView<HomeController> {
               ],
             ),
           ),
-          if (isPending)
-            Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.check_circle_outline,
-                      color: Color(0xFF22C55E), size: 22),
-                  onPressed: () =>
-                      controller.confirmAppointment(appt['id']!),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(width: 4),
-                IconButton(
-                  icon: const Icon(Icons.cancel_outlined,
-                      color: AppColors.error, size: 22),
-                  // Confirmação obrigatória: os dois ícones ficam colados,
-                  // um toque impreciso não pode recusar (e estornar, se
-                  // pago) uma consulta sem chance de desfazer.
-                  onPressed: () => _confirmReject(context, appt['id']!),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
-            )
-          else
+          if (!isPending)
             const Icon(Icons.chevron_right_rounded,
                 color: AppColors.textLight, size: 20),
+        ],
+      ),
+      if (isPending) ...[
+        const SizedBox(height: 14),
+        PendingActions(
+          appt: appt,
+          onAccept: () => controller.confirmAppointment(appt['id']!),
+          onReject: () => _confirmReject(context, appt['id']!),
+          onSuggest: () => showSuggestTimes(context, appt),
+        ),
+      ],
         ],
       ),
       ),
@@ -1520,13 +1511,11 @@ class _ServicosTab extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (_) => ServiceSheet(
         initial: index == null ? null : ctrl.services[index],
-        onSave: (name, price, unit, perAnimal, extra) {
+        onSave: (input) {
           if (index == null) {
-            ctrl.addService(name, price, unit,
-                perAnimal: perAnimal, additionalPrice: extra);
+            ctrl.addService(input);
           } else {
-            ctrl.updateService(index, name, price, unit,
-                perAnimal: perAnimal, additionalPrice: extra);
+            ctrl.updateService(index, input);
           }
         },
       ),
@@ -1609,6 +1598,24 @@ class _ServicosTab extends StatelessWidget {
                                   style: const TextStyle(
                                       fontSize: 11,
                                       color: AppColors.textMedium),
+                                ),
+                              ),
+                            if ((s['travelFee'] ?? '').isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  'Deslocamento: R\$ ${s['travelFee']} (fixo por visita)',
+                                  style: const TextStyle(
+                                      fontSize: 11, color: AppColors.textMedium),
+                                ),
+                              ),
+                            if ((s['instructions'] ?? '').isNotEmpty)
+                              const Padding(
+                                padding: EdgeInsets.only(top: 2),
+                                child: Text(
+                                  'Com orientações ao tutor',
+                                  style: TextStyle(
+                                      fontSize: 11, color: AppColors.textMedium),
                                 ),
                               ),
                           ],
