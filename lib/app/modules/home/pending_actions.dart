@@ -193,23 +193,102 @@ class _SuggestTimesSheetState extends State<_SuggestTimesSheet> {
     return null;
   }
 
+  static const _wd = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+  static const _mo = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+  // Escolha de data: botões dos próximos 14 dias (mais fácil que o calendário);
+  // "Outra data" abre o calendário para datas mais distantes.
   Future<void> _pickDate(_Slot s) async {
     final now = DateTime.now();
-    final d = await showDatePicker(
+    final today = DateTime(now.year, now.month, now.day);
+    final days = [for (var i = 0; i < 14; i++) today.add(Duration(days: i))];
+    final picked = await showModalBottomSheet<DateTime>(
       context: context,
-      initialDate: s.date ?? now.add(const Duration(days: 1)),
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 60)),
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _PickerSheet(
+        title: 'Escolha o dia',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final d in days)
+                  _ChoiceChip(
+                    selected: s.date != null &&
+                        s.date!.year == d.year &&
+                        s.date!.month == d.month &&
+                        s.date!.day == d.day,
+                    onTap: () => Navigator.of(ctx).pop(d),
+                    width: 76,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(d == today ? 'Hoje' : _wd[d.weekday - 1],
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        Text('${d.day}',
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                        Text(_mo[d.month - 1], style: const TextStyle(fontSize: 11)),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () async {
+                final d = await showDatePicker(
+                  context: ctx,
+                  initialDate: s.date ?? today.add(const Duration(days: 1)),
+                  firstDate: today,
+                  lastDate: today.add(const Duration(days: 60)),
+                );
+                if (d != null && ctx.mounted) Navigator.of(ctx).pop(d);
+              },
+              icon: const Icon(Icons.calendar_month_outlined, size: 18),
+              label: const Text('Outra data'),
+            ),
+          ],
+        ),
+      ),
     );
-    if (d != null) setState(() => s.date = d);
+    if (picked != null) setState(() => s.date = picked);
   }
 
+  // Escolha de horário: botões de meia em meia hora (07:00, 07:30, 08:00...).
   Future<void> _pickTime(_Slot s) async {
-    final t = await showTimePicker(
+    final times = [
+      for (var h = 6; h <= 21; h++) ...[
+        TimeOfDay(hour: h, minute: 0),
+        if (h < 21) TimeOfDay(hour: h, minute: 30),
+      ]
+    ];
+    final picked = await showModalBottomSheet<TimeOfDay>(
       context: context,
-      initialTime: s.time ?? const TimeOfDay(hour: 9, minute: 0),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _PickerSheet(
+        title: 'Escolha o horário',
+        child: Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final t in times)
+              _ChoiceChip(
+                selected: s.time != null &&
+                    s.time!.hour == t.hour &&
+                    s.time!.minute == t.minute,
+                onTap: () => Navigator.of(ctx).pop(t),
+                width: 72,
+                child: Text(_fmtTime(t),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              ),
+          ],
+        ),
+      ),
     );
-    if (t != null) setState(() => s.time = t);
+    if (picked != null) setState(() => s.time = picked);
   }
 
   Future<void> _send() async {
@@ -324,6 +403,80 @@ class _SuggestTimesSheetState extends State<_SuggestTimesSheet> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Folha que sobe de baixo para escolher dia ou horário.
+class _PickerSheet extends StatelessWidget {
+  final String title;
+  final Widget child;
+  const _PickerSheet({required this.title, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.75),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      padding: EdgeInsets.fromLTRB(20, 14, 20, 20 + MediaQuery.of(context).padding.bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 14),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChoiceChip extends StatelessWidget {
+  final bool selected;
+  final VoidCallback onTap;
+  final double width;
+  final Widget child;
+  const _ChoiceChip({
+    required this.selected,
+    required this.onTap,
+    required this.width,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        width: width,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? _amber : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: selected ? _amber : const Color(0xFFE5E7EB), width: 1.5),
+        ),
+        child: DefaultTextStyle.merge(
+          style: TextStyle(color: selected ? Colors.white : AppColors.textDark),
+          child: child,
         ),
       ),
     );
