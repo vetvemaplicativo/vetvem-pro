@@ -76,7 +76,35 @@ class _ServiceSheetState extends State<ServiceSheet> {
     super.dispose();
   }
 
-  static double? _num(String t) => double.tryParse(t.trim().replaceAll(',', '.'));
+  /// Lê valores digitados do jeito brasileiro: "150", "150,5", "1.000,00", "R$ 1000.50".
+  /// Devolve null se o texto não for um valor válido. Ponto sozinho só é milhar
+  /// quando seguido de exatamente 3 dígitos ("1.000" = 1000; "12.50" = 12,5).
+  static double? _num(String t) {
+    var s = t.replaceAll('R\$', '').replaceAll(RegExp(r'\s'), '');
+    if (s.isEmpty || !RegExp(r'^[0-9.,]+$').hasMatch(s)) return null;
+    final lastComma = s.lastIndexOf(',');
+    final lastDot = s.lastIndexOf('.');
+    if (lastComma >= 0 && lastDot >= 0) {
+      final dec = lastComma > lastDot ? ',' : '.';
+      final th = dec == ',' ? '.' : ',';
+      s = s.replaceAll(th, '').replaceAll(dec, '.');
+    } else if (lastComma >= 0) {
+      if (s.indexOf(',') != lastComma) return null;
+      s = s.replaceAll(',', '.');
+    } else if (lastDot >= 0) {
+      final multi = s.indexOf('.') != lastDot;
+      final after = s.length - lastDot - 1;
+      if (multi || after == 3) {
+        if (!RegExp(r'^\d{1,3}(\.\d{3})+$').hasMatch(s)) return null;
+        s = s.replaceAll('.', '');
+      }
+    }
+    final v = double.tryParse(s);
+    return (v == null || v.isNaN || v.isInfinite || v < 0 || v > 100000) ? null : v;
+  }
+
+  /// Forma que o app guarda e o servidor lê: "1000,50" (vírgula, sem milhar).
+  static String _canon(double v) => v.toStringAsFixed(2).replaceAll('.', ',');
 
   static String _money(double v) =>
       'R\$ ${v.toStringAsFixed(2).replaceAll('.', ',')}';
@@ -317,14 +345,21 @@ class _ServiceSheetState extends State<ServiceSheet> {
       warn('Campos obrigatórios', 'Informe o nome e o preço.');
       return;
     }
-    if (_perAnimal && _num(_extra.text) == null) {
-      warn('Informe o valor adicional',
-          'Digite o valor de cada animal adicional ou desligue o desconto.');
+    final priceV = _num(price);
+    if (priceV == null || priceV <= 0) {
+      warn('Preço inválido', 'Digite só números, por exemplo 150 ou 150,50.');
       return;
     }
-    if (_travelOn && (_num(_travel.text) ?? 0) <= 0) {
-      warn('Informe a taxa de deslocamento',
-          'Digite um valor maior que zero ou desligue a taxa.');
+    final extraV = _perAnimal ? _num(_extra.text) : null;
+    if (_perAnimal && extraV == null) {
+      warn('Valor adicional inválido',
+          'Digite o valor de cada animal adicional (ex.: 100,00) ou desligue o desconto.');
+      return;
+    }
+    final travelV = _travelOn ? _num(_travel.text) : null;
+    if (_travelOn && (travelV == null || travelV <= 0)) {
+      warn('Taxa de deslocamento inválida',
+          'Digite um valor maior que zero (ex.: 30,00) ou desligue a taxa.');
       return;
     }
     if (_instructionsOn && _instructions.text.trim().isEmpty) {
@@ -334,11 +369,11 @@ class _ServiceSheetState extends State<ServiceSheet> {
     }
     widget.onSave(ServiceInput(
       name: name,
-      price: price,
+      price: _canon(priceV),
       unit: _unit,
       perAnimal: _perAnimal,
-      additionalPrice: _perAnimal ? _extra.text.trim() : '',
-      travelFee: _travelOn ? _travel.text.trim() : '',
+      additionalPrice: extraV != null ? _canon(extraV) : '',
+      travelFee: travelV != null ? _canon(travelV) : '',
       instructions: _instructionsOn ? _instructions.text.trim() : '',
     ));
     Get.back();
