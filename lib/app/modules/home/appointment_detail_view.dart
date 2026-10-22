@@ -970,8 +970,9 @@ class _AppointmentDetailViewState extends State<AppointmentDetailView> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Recusar consulta?',
             style: TextStyle(fontFamily: 'Poppins')),
-        content: const Text(
-            'O pagamento será estornado ao cliente automaticamente.'),
+        content: Text(appt['canRelocate'] == '1'
+            ? 'Sua consulta será oferecida a outros profissionais que possam atender o tutor no mesmo dia e horário. Se nenhum puder, o valor é devolvido ao tutor.'
+            : 'O pagamento será estornado ao cliente automaticamente.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(dialogCtx),

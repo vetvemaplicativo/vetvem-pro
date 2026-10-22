@@ -609,7 +609,7 @@ class _AppointmentCard extends GetView<HomeController> {
         PendingActions(
           appt: appt,
           onAccept: () => controller.confirmAppointment(appt['id']!),
-          onReject: () => _confirmReject(context, appt['id']!),
+          onReject: () => _confirmReject(context, appt['id']!, appt['canRelocate'] == '1'),
           onSuggest: () => showSuggestTimes(context, appt),
         ),
       ],
@@ -619,15 +619,16 @@ class _AppointmentCard extends GetView<HomeController> {
     );
   }
 
-  void _confirmReject(BuildContext context, String id) {
+  void _confirmReject(BuildContext context, String id, bool relocatable) {
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Recusar consulta?',
             style: TextStyle(fontFamily: 'Poppins')),
-        content: const Text(
-            'Se já houver pagamento, o valor será estornado ao cliente.'),
+        content: Text(relocatable
+            ? 'Sua consulta será oferecida a outros profissionais que possam atender o tutor no mesmo dia e horário. Se nenhum puder, o valor é devolvido ao tutor.'
+            : 'Se já houver pagamento, o valor será estornado ao cliente.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(dialogCtx),
