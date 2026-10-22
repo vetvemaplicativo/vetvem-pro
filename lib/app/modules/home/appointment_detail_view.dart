@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'pending_actions.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../routes/app_routes.dart';
@@ -25,6 +26,12 @@ class _AppointmentDetailViewState extends State<AppointmentDetailView> {
   Timer? _timer;
   bool _expired = false;
 
+  // Acompanha o pedido ao vivo: se ele sair da sua fila (o tutor preferiu outros
+  // profissionais) ou for cancelado, a tela mostra o aviso e esconde Aceitar/Recusar.
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _liveSub;
+  String _endTitle = '';
+  String _endBody = '';
+
   Map<String, dynamic>? _prontuarioData;
   List<Map<String, dynamic>> _complementos = [];
   bool _prontuarioLoaded = false;
@@ -35,6 +42,42 @@ class _AppointmentDetailViewState extends State<AppointmentDetailView> {
     appt = Map<String, String>.from(Get.arguments as Map);
     ctrl = Get.find<HomeController>();
     _loadProntuario();
+    final id = appt['id'];
+    if (id != null) {
+      _liveSub = FirebaseFirestore.instance
+          .collection('appointments')
+          .doc(id)
+          .snapshots()
+          .listen((snap) {
+        final d = snap.data();
+        if (d != null) _applyLive(d);
+      });
+    }
+  }
+
+  void _applyLive(Map<String, dynamic> d) {
+    if (!mounted) return;
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final vetNow = (d['vetId'] ?? '').toString();
+    final status = (d['status'] ?? '').toString();
+    String title = '';
+    String body = '';
+    if (vetNow != uid) {
+      title = 'Consulta redirecionada';
+      body = 'O tutor preferiu ver outros profissionais para este horário. '
+          'Ela saiu da sua agenda e você não precisa fazer mais nada.';
+    } else if ((status == 'rejected' || status == 'cancelled') &&
+        (appt['status'] == 'pending_confirmation' || appt['status'] == 'pending')) {
+      title = 'Consulta cancelada';
+      body = 'O pedido foi encerrado e o valor devolvido ao tutor.';
+    }
+    setState(() {
+      _endTitle = title;
+      _endBody = body;
+      if (status.isNotEmpty) appt['status'] = status;
+      appt['proposalStatus'] = (d['proposalStatus'] ?? '').toString();
+      appt['proposalDeadline'] = '${d['proposalDeadline'] ?? ''}';
+    });
   }
 
   Future<void> _loadProntuario() async {
@@ -60,10 +103,17 @@ class _AppointmentDetailViewState extends State<AppointmentDetailView> {
     if (status == 'pending_confirmation' &&
         data?['proposalStatus'] != 'awaiting_tutor') {
       // Countdown real a partir do createdAt do servidor.
-      final created = (data?['createdAt'] as Timestamp?)?.toDate();
-      if (created != null) {
-        final left =
-            const Duration(minutes: 30) - DateTime.now().difference(created);
+      // Mesmo prazo do servidor (expireUnanswered): responseDeadline (pedido
+      // redirecionado) ou 2h a partir do pagamento aprovado.
+      final paidAt = data?['paymentStatus'] == 'approved'
+          ? (data?['paymentUpdatedAt'] as Timestamp?)?.toDate()
+          : null;
+      final created = paidAt ?? (data?['createdAt'] as Timestamp?)?.toDate();
+      final respMs = (data?['responseDeadline'] as num?)?.toInt();
+      if (respMs != null || created != null) {
+        final left = respMs != null
+            ? Duration(milliseconds: respMs - DateTime.now().millisecondsSinceEpoch)
+            : const Duration(minutes: 120) - DateTime.now().difference(created!);
         if (left.inSeconds <= 0) {
           if (mounted) setState(() => _expired = true);
         } else {
@@ -97,6 +147,7 @@ class _AppointmentDetailViewState extends State<AppointmentDetailView> {
   @override
   void dispose() {
     _timer?.cancel();
+    _liveSub?.cancel();
     super.dispose();
   }
 
@@ -109,7 +160,8 @@ class _AppointmentDetailViewState extends State<AppointmentDetailView> {
   @override
   Widget build(BuildContext context) {
     final status = appt['status'] ?? '';
-    final isPending = status == 'pending' || status == 'pending_confirmation';
+    final ended = _endTitle.isNotEmpty;
+    final isPending = !ended && (status == 'pending' || status == 'pending_confirmation');
     final isConfirmed = status == 'confirmed';
     final isCompleted = status == 'completed';
     final isRejected = status == 'rejected' || status == 'cancelled';
@@ -121,7 +173,9 @@ class _AppointmentDetailViewState extends State<AppointmentDetailView> {
             : isCompleted
                 ? AppColors.primary
                 : AppColors.error;
-    final statusLabel = isPending
+    final statusLabel = ended
+        ? 'Encerrada'
+        : isPending
         ? 'Aguardando confirmação'
         : isConfirmed
             ? 'Confirmado'
@@ -201,6 +255,43 @@ class _AppointmentDetailViewState extends State<AppointmentDetailView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (ended) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.swap_horiz_rounded, color: AppColors.primary, size: 26),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(_endTitle,
+                                    style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.primary)),
+                                const SizedBox(height: 4),
+                                Text(_endBody,
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        height: 1.4,
+                                        color: AppColors.textMedium)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                   // Timer / aviso de prazo esgotado
                   if (isPending) ...[
                     Container(

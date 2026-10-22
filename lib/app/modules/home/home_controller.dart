@@ -603,8 +603,13 @@ class HomeController extends GetxController {
       // O tutor paga já ao solicitar: enquanto o pagamento não for aprovado,
       // a solicitação não existe para o profissional (evita aceitar/recusar
       // algo que o tutor ainda nem pagou).
+      final myUid = _auth.currentUser?.uid ?? '';
       final docs = snap.docs.where((doc) {
         final d = doc.data();
+        // Pedido que saiu da minha fila (o tutor está escolhendo outro profissional
+        // ou já escolheu): não aparece mais para mim.
+        final vid = (d['vetId'] ?? '').toString();
+        if (d['relocationStatus'] != null && vid != myUid) return false;
         return !(d['status'] == 'pending_confirmation' &&
             d['paymentStatus'] != 'approved');
       }).toList()
