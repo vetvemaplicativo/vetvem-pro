@@ -979,7 +979,9 @@ class HomeController extends GetxController {
     // Pagamento (se houve) é estornado automaticamente pela Cloud Function
     // handleRejectedPayment, disparada pela própria escrita de status
     // 'rejected' acima — não precisa chamar nada daqui.
-    if (tutorId != null) {
+    // Pedido do app novo do tutor (canRelocate): o servidor oferece outros
+    // profissionais e avisa o tutor ele mesmo; este aviso diria "estornado" cedo demais.
+    if (tutorId != null && d['canRelocate'] != true) {
       await NotificationService.sendTo(
         toUid: tutorId,
         title: 'Consulta não confirmada',
