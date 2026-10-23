@@ -163,15 +163,7 @@ class RegisterController extends GetxController {
     }
   }
 
-  // Step 5 — Documentos e endereço
-  final cepCtrl          = TextEditingController();
-  final streetCtrl       = TextEditingController();
-  final numberCtrl       = TextEditingController();
-  final complementCtrl   = TextEditingController();
-  final neighborhoodCtrl = TextEditingController();
-  final cityCtrl         = TextEditingController();
-  final stateCtrl        = TextEditingController();
-
+  // Step 5 — Documentos (o endereço completo não é mais pedido: a busca usa a Área de atuação)
   // Chave PIX
   final pixKeyCtrl  = TextEditingController();
   final pixKeyType  = 'CPF'.obs;
@@ -263,11 +255,6 @@ class RegisterController extends GetxController {
           return false;
         }
       case 4:
-        if (cepCtrl.text.trim().isEmpty || streetCtrl.text.trim().isEmpty ||
-            numberCtrl.text.trim().isEmpty) {
-          _warn('Preencha o endereço completo');
-          return false;
-        }
         if (!docIdentityUploaded.value || !docCrmvUploaded.value) {
           _warn('Envie a foto do RG/CNH e do CRMV para continuar');
           return false;
@@ -370,15 +357,6 @@ class RegisterController extends GetxController {
         }).toList(),
         'availableDays': selectedDays.toList(),
         'availableTimes': availableTimes.toList(),
-        'address': {
-          'cep': cepCtrl.text.trim(),
-          'street': streetCtrl.text.trim(),
-          'number': numberCtrl.text.trim(),
-          'complement': complementCtrl.text.trim(),
-          'neighborhood': neighborhoodCtrl.text.trim(),
-          'city': cityCtrl.text.trim(),
-          'state': stateCtrl.text.trim(),
-        },
         'animalSpecies': selectedSpecies.toList(),
         'pixKeys': pixKeyCtrl.text.trim().isNotEmpty
             ? [{'type': pixKeyType.value, 'key': pixKeyCtrl.text.trim()}]
@@ -448,8 +426,7 @@ class RegisterController extends GetxController {
     for (final c in [
       nameCtrl, cpfCtrl, emailCtrl, phoneCtrl, passwordCtrl,
       crmvCtrl, bioCtrl, serviceNameCtrl, serviceDescCtrl, servicePriceCtrl,
-      cepCtrl, streetCtrl, numberCtrl, complementCtrl,
-      neighborhoodCtrl, cityCtrl, stateCtrl, pixKeyCtrl,
+      pixKeyCtrl,
     ]) {
       c.dispose();
     }

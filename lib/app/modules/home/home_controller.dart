@@ -250,7 +250,6 @@ class HomeController extends GetxController {
   // status por tipo: '' (não enviado) | submitted | approved | rejected
   final docStatuses = <String, String>{}.obs;
   final isUploadingDoc = false.obs;
-  final professionalAddress = <String, String>{}.obs;
   // true depois da 1ª leitura dos documentos (evita piscar 'faltam documentos')
   final docsLoaded = false.obs;
 
@@ -333,29 +332,6 @@ class HomeController extends GetxController {
       );
     } finally {
       isUploadingDoc.value = false;
-    }
-  }
-
-  Future<void> updateAddress(Map<String, String> address) async {
-    final uid = _auth.currentUser?.uid;
-    if (uid == null) return;
-    try {
-      await _firestore.collection('users').doc(uid).update({'address': address});
-      professionalAddress.assignAll(address);
-      Get.find<AnalyticsService>().logProfileAction('address_updated');
-      snack(
-        title: 'Endereço atualizado',
-        message: 'Suas informações foram salvas.',
-        icon: Icons.check_circle_rounded,
-        color: const Color(0xFF22C55E),
-      );
-    } catch (_) {
-      snack(
-        title: 'Erro',
-        message: 'Não foi possível salvar. Tente novamente.',
-        icon: Icons.error_outline_rounded,
-        color: const Color(0xFFEF4444),
-      );
     }
   }
 
@@ -893,11 +869,6 @@ class HomeController extends GetxController {
       final area = AreaAtuacao.fromMap(
           (data['area_atuacao'] as Map?)?.cast<String, dynamic>());
       areaAtuacaoResumo.value = area.isEmpty ? '' : area.resumo;
-
-      final addr = (data['address'] as Map?) ?? {};
-      professionalAddress.assignAll({
-        for (final e in addr.entries) e.key.toString(): e.value?.toString() ?? '',
-      });
 
       // Carrega chaves PIX
       final keys = List<Map<String, dynamic>>.from(data['pixKeys'] ?? []);

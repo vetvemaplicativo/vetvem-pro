@@ -99,7 +99,7 @@ class RegisterView extends GetView<RegisterController> {
         'Dados profissionais',
         'Seus serviços',
         'Disponibilidade',
-        'Endereço e documentos',
+        'Documentos',
       ][step];
 }
 
@@ -642,7 +642,7 @@ class _Step4 extends StatelessWidget {
   }
 }
 
-// ─── Step 5 — Endereço e documentos ──────────────────────────────────────────
+// ─── Step 5 — Documentos ─────────────────────────────────────────────────
 
 class _Step5 extends StatelessWidget {
   final RegisterController c;
@@ -657,86 +657,6 @@ class _Step5 extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Endereço
-          const _SectionLabel('Endereço de atendimento *'),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: _Field(
-                    ctrl: c.cepCtrl,
-                    label: 'CEP *',
-                    hint: '00000-000',
-                    icon: Icons.location_on_outlined,
-                    keyboard: TextInputType.number,
-                    formatters: [_MaskFormatter('99999-999')]),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 3,
-                child: _Field(
-                    ctrl: c.cityCtrl,
-                    label: 'Cidade *',
-                    hint: 'Rio de Janeiro',
-                    icon: Icons.location_city_outlined),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _Field(
-              ctrl: c.streetCtrl,
-              label: 'Logradouro *',
-              hint: 'Rua, Avenida...',
-              icon: Icons.signpost_outlined),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                flex: 1,
-                child: _Field(
-                    ctrl: c.numberCtrl,
-                    label: 'Número *',
-                    hint: '123',
-                    icon: Icons.tag_outlined,
-                    keyboard: TextInputType.number),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 2,
-                child: _Field(
-                    ctrl: c.complementCtrl,
-                    label: 'Complemento',
-                    hint: 'Apto, Sala...',
-                    icon: Icons.apartment_outlined),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: _Field(
-                    ctrl: c.neighborhoodCtrl,
-                    label: 'Bairro',
-                    hint: 'Centro',
-                    icon: Icons.map_outlined),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 1,
-                child: _Field(
-                    ctrl: c.stateCtrl,
-                    label: 'UF',
-                    hint: 'RJ',
-                    icon: Icons.flag_outlined),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 28),
-
           // Chave PIX
           const _SectionLabel('Chave PIX para recebimento *'),
           const SizedBox(height: 6),

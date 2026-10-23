@@ -3236,8 +3236,6 @@ class _PerfilTabState extends State<_PerfilTab> {
             }),
             const SizedBox(height: 14),
 
-            const ProfileAddressCard(),
-            const SizedBox(height: 14),
             const ProfileSecurityCard(),
             const SizedBox(height: 14),
 
