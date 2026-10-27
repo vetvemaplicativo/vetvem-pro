@@ -801,6 +801,7 @@ class HomeController extends GetxController {
       'petCount': '$petCount',
       'canChooseTimes': d['canChooseTimes'] == true ? '1' : '',
       'canRelocate': d['canRelocate'] == true ? '1' : '',
+      'notes': (d['notes'] ?? '').toString(),
       'bookingOrigin': (d['bookingOrigin'] ?? '').toString(),
       'proposalStatus': (d['proposalStatus'] ?? '').toString(),
       'proposalDeadline': '${d['proposalDeadline'] ?? ''}',

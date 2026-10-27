@@ -547,6 +547,36 @@ class _AppointmentDetailViewState extends State<AppointmentDetailView> {
                     const SizedBox(height: 12),
                   ],
 
+                  // Observações escritas pelo tutor ao agendar (ex.: "meu pet é assustado")
+                  if ((appt['notes'] ?? '').trim().isNotEmpty) ...[
+                    _SectionCard(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _InfoIcon(Icons.sticky_note_2_outlined, const Color(0xFFF59E0B)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('Observações do tutor',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textMedium)),
+                                Text(appt['notes']!,
+                                    style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textDark)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
                   // Pagamento
                   Builder(builder: (context) {
                     final method = (appt['paymentMethod'] ?? '').toString();
