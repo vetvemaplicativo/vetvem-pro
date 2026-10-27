@@ -247,6 +247,7 @@ class _InicioTab extends GetView<HomeController> {
                     return _StatusBanner(
                       status: status,
                       missingDocs: controller.docsLoaded.value && controller.missingDocs,
+                      rejectionReason: controller.rejectionReason.value,
                       onSendDocs: () => controller.changeTab(4),
                     );
                   }),
@@ -779,16 +780,19 @@ class _ProfileStatusBadge extends StatelessWidget {
 class _StatusBanner extends StatelessWidget {
   final String status;
   final bool missingDocs;
+  final String rejectionReason;
   final VoidCallback onSendDocs;
   const _StatusBanner({
     required this.status,
     required this.missingDocs,
+    this.rejectionReason = '',
     required this.onSendDocs,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isSuspended = status == 'suspended';
+    final isRejected = status == 'rejected';
+    final isSuspended = status == 'suspended' || isRejected;
     return Container(
       margin: const EdgeInsets.only(bottom: 4),
       padding: const EdgeInsets.all(14),
@@ -820,7 +824,9 @@ class _StatusBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isSuspended
+                  isRejected
+                      ? 'Cadastro não aprovado'
+                      : isSuspended
                       ? 'Conta suspensa'
                       : (missingDocs ? 'Faltam seus documentos' : 'Conta em análise'),
                   style: TextStyle(
@@ -831,7 +837,11 @@ class _StatusBanner extends StatelessWidget {
                           : const Color(0xFF92400E)),
                 ),
                 Text(
-                  isSuspended
+                  isRejected
+                      ? (rejectionReason.isNotEmpty
+                          ? 'Motivo: $rejectionReason Corrija e reenvie seus documentos para uma nova análise.'
+                          : 'Confira seus documentos e reenvie para uma nova análise.')
+                      : isSuspended
                       ? 'Entre em contato com o suporte para reativar.'
                       : (missingDocs
                           ? 'Envie o RG/CNH e o CRMV para liberarmos sua conta.'
@@ -845,10 +855,10 @@ class _StatusBanner extends StatelessWidget {
               ],
             ),
           ),
-          if (missingDocs && !isSuspended)
+          if (isRejected || (missingDocs && !isSuspended))
             TextButton(
               onPressed: onSendDocs,
-              child: const Text('Enviar',
+              child: Text(isRejected ? 'Reenviar' : 'Enviar',
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Color(0xFF92400E))),

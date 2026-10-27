@@ -52,6 +52,8 @@ class HomeController extends GetxController {
 
   // Status da conta: 'pending' | 'active' | 'suspended'
   final accountStatus = 'pending'.obs;
+  // Motivo escrito pelo admin ao rejeitar o cadastro (vazio se não houver).
+  final rejectionReason = ''.obs;
 
   // Recebimento de novos pedidos pausado a pedido do próprio profissional
   // (não confundir com accountStatus/blocked, que são controlados pelo admin).
@@ -845,6 +847,7 @@ class HomeController extends GetxController {
     _firestore.collection('users').doc(uid).snapshots().listen((snap) {
       final s = snap.data()?['accountStatus'];
       if (s is String && s.isNotEmpty) accountStatus.value = s;
+      rejectionReason.value = (snap.data()?['rejectionReason'] ?? '').toString();
     });
   }
 
