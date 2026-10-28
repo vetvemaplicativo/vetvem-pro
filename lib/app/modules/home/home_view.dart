@@ -14,6 +14,7 @@ import '../auth/register/register_controller.dart' show RegisterController;
 import 'home_controller.dart';
 import 'profile_extras.dart';
 import 'service_sheet.dart';
+import 'travel_settings_view.dart';
 import 'pending_actions.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -292,47 +293,148 @@ class _InicioTab extends GetView<HomeController> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 12),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE5E7EB),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  Icon(Icons.notifications_rounded,
-                      color: AppColors.primary),
-                  SizedBox(width: 10),
-                  Text('Notificações',
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textDark)),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.5,
-              ),
-              child: _NotificationsList(),
-            ),
-            const SizedBox(height: 20),
-          ],
+      isScrollControlled: true,
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.75,
+      ),
+      builder: (_) => const _NotificationsSheet(),
+    );
+  }
+}
+
+/// Painel do sininho: lista as notificações e permite apagar todas.
+class _NotificationsSheet extends StatelessWidget {
+  const _NotificationsSheet();
+
+  Future<void> _clearAll(BuildContext context, String uid) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Excluir notificações?'),
+        content: const Text('Todas as notificações serão apagadas. Isso não afeta os seus pedidos.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Excluir', style: TextStyle(color: Color(0xFFEF4444))),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      final col = FirebaseFirestore.instance
+          .collection('notifications')
+          .doc(uid)
+          .collection('pending');
+      final all = await col.get();
+      for (var i = 0; i < all.docs.length; i += 400) {
+        final batch = FirebaseFirestore.instance.batch();
+        for (final d in all.docs.skip(i).take(400)) {
+          batch.delete(d.reference);
+        }
+        await batch.commit();
+      }
+    } catch (_) {
+      Get.find<HomeController>().snack(
+        title: 'Não foi possível excluir',
+        message: 'Verifique sua conexão e tente novamente.',
+        icon: Icons.error_outline_rounded,
+        color: const Color(0xFFEF4444),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: uid == null
+              ? null
+              : FirebaseFirestore.instance
+                  .collection('notifications')
+                  .doc(uid)
+                  .collection('pending')
+                  .orderBy('createdAt', descending: true)
+                  .limit(20)
+                  .snapshots(),
+          builder: (context, snap) {
+            final docs = snap.data?.docs ?? const [];
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE5E7EB),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.notifications_rounded, color: AppColors.primary),
+                      const SizedBox(width: 10),
+                      const Expanded(
+                        child: Text('Notificações',
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textDark)),
+                      ),
+                      if (docs.isNotEmpty && uid != null)
+                        InkWell(
+                          onTap: () => _clearAll(context, uid),
+                          borderRadius: BorderRadius.circular(8),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.delete_outline_rounded,
+                                    size: 18, color: Color(0xFFEF4444)),
+                                SizedBox(width: 4),
+                                Text('Excluir todas',
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFFEF4444))),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                if (!snap.hasData)
+                  const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (docs.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(24, 32, 24, 32),
+                    child: Center(
+                      child: Text('Nenhuma notificação por aqui.',
+                          style: TextStyle(fontSize: 13, color: AppColors.textMedium)),
+                    ),
+                  )
+                else
+                  Flexible(child: _NotificationsList(docs: docs)),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -340,54 +442,28 @@ class _InicioTab extends GetView<HomeController> {
 }
 
 class _NotificationsList extends StatelessWidget {
+  final List<QueryDocumentSnapshot<Map<String, dynamic>>> docs;
+  const _NotificationsList({required this.docs});
+
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return const SizedBox.shrink();
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance
-          .collection('notifications')
-          .doc(uid)
-          .collection('pending')
-          .orderBy('createdAt', descending: true)
-          .limit(20)
-          .snapshots(),
-      builder: (context, snap) {
-        if (!snap.hasData) {
-          return const Padding(
-            padding: EdgeInsets.all(24),
-            child: Center(child: CircularProgressIndicator()),
-          );
-        }
-        final docs = snap.data!.docs;
-        if (docs.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(24),
-            child: Center(
-              child: Text('Nenhuma notificação por aqui ainda.',
-                  style: TextStyle(fontSize: 13, color: AppColors.textMedium)),
-            ),
-          );
-        }
-        return ListView.builder(
-          shrinkWrap: true,
-          itemCount: docs.length,
-          itemBuilder: (_, i) {
-            final d = docs[i].data();
-            final tipo = d['tipo'] as String? ?? '';
-            final (icon, color) = switch (tipo) {
-              'novo_agendamento' => (Icons.calendar_today_outlined, AppColors.primary),
-              'consulta_expirada' => (Icons.hourglass_disabled_rounded, const Color(0xFFEF4444)),
-              _ => (Icons.notifications_outlined, const Color(0xFFF59E0B)),
-            };
-            return _NotifItem(
-              icon: icon,
-              color: color,
-              title: d['title'] as String? ?? 'VetVem Pro',
-              subtitle: d['body'] as String? ?? '',
-              time: _timeAgo(d['createdAt']),
-            );
-          },
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: docs.length,
+      itemBuilder: (_, i) {
+        final d = docs[i].data();
+        final tipo = d['tipo'] as String? ?? '';
+        final (icon, color) = switch (tipo) {
+          'novo_agendamento' => (Icons.calendar_today_outlined, AppColors.primary),
+          'consulta_expirada' => (Icons.hourglass_disabled_rounded, const Color(0xFFEF4444)),
+          _ => (Icons.notifications_outlined, const Color(0xFFF59E0B)),
+        };
+        return _NotifItem(
+          icon: icon,
+          color: color,
+          title: d['title'] as String? ?? 'VetVem Pro',
+          subtitle: d['body'] as String? ?? '',
+          time: _timeAgo(d['createdAt']),
         );
       },
     );
@@ -1617,6 +1693,15 @@ class _ServicosTab extends StatelessWidget {
                                 child: Text(
                                   'Deslocamento: R\$ ${s['travelFee']} (fixo por visita)',
                                   style: const TextStyle(
+                                      fontSize: 11, color: AppColors.textMedium),
+                                ),
+                              ),
+                            if (s['travelByKm'] == '1')
+                              const Padding(
+                                padding: EdgeInsets.only(top: 2),
+                                child: Text(
+                                  'Deslocamento: calculado por km',
+                                  style: TextStyle(
                                       fontSize: 11, color: AppColors.textMedium),
                                 ),
                               ),
@@ -3235,6 +3320,44 @@ class _PerfilTabState extends State<_PerfilTab> {
                                 ? FontWeight.w600
                                 : FontWeight.normal,
                           ),
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right_rounded,
+                          size: 20, color: AppColors.textMedium),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 14),
+
+            // Taxa de deslocamento
+            Obx(() {
+              final c = Get.find<HomeController>();
+              final perKm = c.travelModel.value == 'per_km';
+              return _InfoCard(
+                title: 'Taxa de deslocamento',
+                child: InkWell(
+                  onTap: () async {
+                    await Get.to(() => const TravelSettingsView());
+                    c.reloadTravel();
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: Row(
+                    children: [
+                      Icon(
+                        perKm ? Icons.route_outlined : Icons.sell_outlined,
+                        size: 18,
+                        color: AppColors.textMedium,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          c.travelResumo.value.isEmpty
+                              ? 'Escolha entre taxa fixa ou por quilômetro'
+                              : c.travelResumo.value,
+                          style: const TextStyle(
+                              fontSize: 13, color: AppColors.textMedium),
                         ),
                       ),
                       const Icon(Icons.chevron_right_rounded,

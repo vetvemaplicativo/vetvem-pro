@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../theme/app_theme.dart';
+import 'home_controller.dart';
 
 /// Dados de um serviço vindos do formulário (valores em texto, como o app guarda).
 class ServiceInput {
@@ -8,6 +9,7 @@ class ServiceInput {
   final bool perAnimal; // "desconto nos animais adicionais"
   final String additionalPrice; // só vale com perAnimal
   final String travelFee; // taxa de deslocamento fixa ('' = sem taxa)
+  final bool travelByKm; // cobra deslocamento por km neste serviço (modelo por km)
   final String instructions; // orientações ao tutor ('' = sem orientações)
   const ServiceInput({
     required this.name,
@@ -16,6 +18,7 @@ class ServiceInput {
     this.perAnimal = false,
     this.additionalPrice = '',
     this.travelFee = '',
+    this.travelByKm = false,
     this.instructions = '',
   });
 }
@@ -49,6 +52,9 @@ class _ServiceSheetState extends State<ServiceSheet> {
   late String _unit;
   late bool _perAnimal;
   late bool _travelOn;
+  // Perfil > Taxa de deslocamento: por km (o valor sai da distância; sem campo de valor)
+  late final bool _byKm = Get.isRegistered<HomeController>() &&
+      Get.find<HomeController>().travelModel.value == 'per_km';
   late bool _instructionsOn;
 
   @override
@@ -62,7 +68,7 @@ class _ServiceSheetState extends State<ServiceSheet> {
     _instructions = TextEditingController(text: s?['instructions'] ?? '');
     _unit = _units.contains(s?['unit']) ? s!['unit']! : 'consulta';
     _perAnimal = s?['perAnimal'] == '1';
-    _travelOn = (s?['travelFee'] ?? '').isNotEmpty;
+    _travelOn = _byKm ? (s?['travelByKm'] == '1') : ((s?['travelFee'] ?? '').isNotEmpty);
     _instructionsOn = (s?['instructions'] ?? '').isNotEmpty;
   }
 
@@ -122,7 +128,7 @@ class _ServiceSheetState extends State<ServiceSheet> {
       }
       extra = e;
     }
-    final travel = _travelOn ? (_num(_travel.text) ?? 0) : 0.0;
+    final travel = _travelOn && !_byKm ? (_num(_travel.text) ?? 0) : 0.0;
     final animals = price + 2 * extra;
     final total = animals + travel;
     final head = _perAnimal
@@ -253,12 +259,14 @@ class _ServiceSheetState extends State<ServiceSheet> {
                 onChanged: (v) => setState(() => _travelOn = v),
                 title: const Text('Cobrar taxa de deslocamento',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                subtitle: const Text(
-                  'Um valor fixo, somado ao serviço, para ajudar no seu deslocamento até o tutor.',
-                  style: TextStyle(fontSize: 12, color: AppColors.textMedium),
+                subtitle: Text(
+                  _byKm
+                      ? 'Soma ao serviço o deslocamento calculado pela distância até o tutor.'
+                      : 'Soma ao serviço um valor para o seu deslocamento até o tutor.',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textMedium),
                 ),
               ),
-              if (_travelOn) ...[
+              if (_travelOn && !_byKm) ...[
                 TextField(
                   controller: _travel,
                   keyboardType:
@@ -267,8 +275,7 @@ class _ServiceSheetState extends State<ServiceSheet> {
                   decoration: _dec('Valor da taxa de deslocamento (R\$)'),
                 ),
                 _hint(
-                  'É um valor FIXO por visita (cobrado uma vez, mesmo com vários animais). '
-                  'O VetVem não calcula a distância: defina um valor médio para a sua região. '
+                  'Cobrado uma vez por visita, mesmo com vários animais. '
                   'O tutor vê a taxa separada do serviço, e a comissão do VetVem incide sobre o valor total.',
                 ),
               ],
@@ -356,8 +363,8 @@ class _ServiceSheetState extends State<ServiceSheet> {
           'Digite o valor de cada animal adicional (ex.: 100,00) ou desligue o desconto.');
       return;
     }
-    final travelV = _travelOn ? _num(_travel.text) : null;
-    if (_travelOn && (travelV == null || travelV <= 0)) {
+    final travelV = _travelOn && !_byKm ? _num(_travel.text) : null;
+    if (_travelOn && !_byKm && (travelV == null || travelV <= 0)) {
       warn('Taxa de deslocamento inválida',
           'Digite um valor maior que zero (ex.: 30,00) ou desligue a taxa.');
       return;
@@ -374,6 +381,7 @@ class _ServiceSheetState extends State<ServiceSheet> {
       perAnimal: _perAnimal,
       additionalPrice: extraV != null ? _canon(extraV) : '',
       travelFee: travelV != null ? _canon(travelV) : '',
+      travelByKm: _byKm && _travelOn,
       instructions: _instructionsOn ? _instructions.text.trim() : '',
     ));
     Get.back();

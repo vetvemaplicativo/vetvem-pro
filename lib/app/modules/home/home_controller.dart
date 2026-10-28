@@ -95,6 +95,7 @@ class HomeController extends GetxController {
         'perAnimal': i.perAnimal ? '1' : '',
         'additionalPrice': i.perAnimal ? i.additionalPrice : '',
         'travelFee': i.travelFee,
+        'travelByKm': i.travelByKm ? '1' : '',
         'instructions': i.instructions,
       };
 
@@ -133,6 +134,7 @@ class HomeController extends GetxController {
       setOrRemove('additionalPrice', s['additionalPrice'],
           (s['additionalPrice'] ?? '').isNotEmpty);
       setOrRemove('travelFee', s['travelFee'], (s['travelFee'] ?? '').isNotEmpty);
+      setOrRemove('travelByKm', true, s['travelByKm'] == '1');
       setOrRemove('instructions', s['instructions'],
           (s['instructions'] ?? '').isNotEmpty);
       out.add(m);
@@ -145,6 +147,56 @@ class HomeController extends GetxController {
 
   // Chaves PIX
   final pixKeys = <Map<String, String>>[].obs;
+
+  // Taxa de deslocamento: 'fixed' ou 'per_km' + resumo para o card do perfil
+  final travelModel = 'fixed'.obs;
+  final travelResumo = ''.obs;
+
+  void _applyTravel(Map<String, dynamic> d) {
+    final perKm = d['travelModel'] == 'per_km';
+    travelModel.value = perKm ? 'per_km' : 'fixed';
+    if (!perKm) {
+      travelResumo.value = 'Taxa fixa por visita (definida em cada serviço)';
+      return;
+    }
+    final v = (d['travelPerKm'] as num?)?.toDouble() ?? 0;
+    final money = v.toStringAsFixed(2).replaceAll('.', ',');
+    final dir = d['travelRoundTrip'] == false ? 'só ida' : 'ida e volta';
+    final km = (d['travelMaxKm'] as num?)?.toInt();
+    travelResumo.value = 'R\$ $money por km · $dir'
+        '${km != null ? ' · até $km km' : ''}';
+  }
+
+  // Ao trocar o modelo de deslocamento, ajusta os serviços: taxa fixa -> por km (o valor
+  // fixo sai, o serviço continua cobrando deslocamento); por km -> taxa fixa (o serviço
+  // fica sem deslocamento até o profissional informar o valor). Retorna quantos mudaram.
+  Future<int> convertServicesForTravelModel(String model) async {
+    var changed = 0;
+    for (var i = 0; i < services.length; i++) {
+      final s = Map<String, String>.from(services[i]);
+      if (model == 'per_km' && (s['travelFee'] ?? '').isNotEmpty) {
+        s['travelFee'] = '';
+        s['travelByKm'] = '1';
+        services[i] = s;
+        changed++;
+      } else if (model == 'fixed' && s['travelByKm'] == '1') {
+        s['travelByKm'] = '';
+        services[i] = s;
+        changed++;
+      }
+    }
+    if (changed > 0) await _saveServices();
+    return changed;
+  }
+
+  Future<void> reloadTravel() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      _applyTravel(doc.data() ?? {});
+    } catch (_) {}
+  }
 
   // Área de atuação (resumo exibido no perfil; vazio = não configurada)
   final areaAtuacaoResumo = ''.obs;
@@ -873,6 +925,7 @@ class HomeController extends GetxController {
       final area = AreaAtuacao.fromMap(
           (data['area_atuacao'] as Map?)?.cast<String, dynamic>());
       areaAtuacaoResumo.value = area.isEmpty ? '' : area.resumo;
+      _applyTravel(data);
 
       // Carrega chaves PIX
       final keys = List<Map<String, dynamic>>.from(data['pixKeys'] ?? []);
@@ -891,6 +944,7 @@ class HomeController extends GetxController {
           'perAnimal': s['perAnimal'] == true ? '1' : '',
           'additionalPrice': s['additionalPrice']?.toString() ?? '',
           'travelFee': s['travelFee']?.toString() ?? '',
+          'travelByKm': s['travelByKm'] == true ? '1' : '',
           'instructions': s['instructions']?.toString() ?? '',
         }).toList());
         _serviceRaw
