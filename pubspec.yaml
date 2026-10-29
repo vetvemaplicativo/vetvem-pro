@@ -2,7 +2,7 @@ name: vetvem_pro
 description: "VetVem Pro - Gerencie seus atendimentos veterinários a domicílio."
 publish_to: 'none'
 
-version: 1.0.18+50
+version: 1.0.19+51
 
 environment:
   sdk: ^3.12.1
@@ -27,6 +27,8 @@ dependencies:
   http: ^1.2.2
   get_storage: ^2.1.1
   package_info_plus: ^8.1.2
+  firebase_storage: ^12.4.10
+  file_picker: 10.3.10
 
 dev_dependencies:
   flutter_test:

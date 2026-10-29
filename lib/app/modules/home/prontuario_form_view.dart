@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../theme/app_theme.dart';
+import 'attachments_field.dart';
 import 'home_controller.dart';
 
 // Modelos locais (espelham os do cliente — unificados no Firebase depois)
@@ -35,7 +36,9 @@ class _ProntuarioFormViewState extends State<ProntuarioFormView> {
   final _complementoCtrl = TextEditingController();
   final _vacinas = <_Vacina>[];
   final _medicamentos = <_Medicamento>[];
+  final _anexos = <Map<String, dynamic>>[];
   bool _saving = false;
+  bool _uploading = false;
 
   @override
   void initState() {
@@ -46,6 +49,9 @@ class _ProntuarioFormViewState extends State<ProntuarioFormView> {
 
     if (_mode == 'edit') {
       final existing = args['prontuario'] as Map<String, dynamic>? ?? {};
+      for (final a in List<Map<String, dynamic>>.from(existing['anexos'] ?? [])) {
+        _anexos.add(Map<String, dynamic>.from(a));
+      }
       _pesoCtrl.text = existing['peso']?.toString() ?? '';
       _obsCtrl.text = existing['observacoes']?.toString() ?? '';
       for (final v in List<Map<String, dynamic>>.from(existing['vacinas'] ?? [])) {
@@ -218,6 +224,10 @@ class _ProntuarioFormViewState extends State<ProntuarioFormView> {
                             'Escreva aqui a informação complementar (ex: novo medicamento, ajuste de dosagem, resultado de exame)...',
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    const _SectionLabel('Anexos (opcional)'),
+                    const SizedBox(height: 8),
+                    _anexosField(),
                     const SizedBox(height: 32),
                   ],
 
@@ -306,6 +316,13 @@ class _ProntuarioFormViewState extends State<ProntuarioFormView> {
                           'Descreva o estado clínico, diagnóstico, recomendações...',
                     ),
                   ),
+                  const SizedBox(height: 24),
+                  const _SectionLabel('Anexos (opcional)'),
+                  const SizedBox(height: 4),
+                  const Text('Receita, exame, foto... o tutor abre pelo app.',
+                      style: TextStyle(fontSize: 12, color: AppColors.textLight)),
+                  const SizedBox(height: 8),
+                  _anexosField(),
                   const SizedBox(height: 32),
                   ], // end if (_mode != 'complement')
                 ],
@@ -327,7 +344,7 @@ class _ProntuarioFormViewState extends State<ProntuarioFormView> {
                     children: [
                       ElevatedButton.icon(
                         onPressed:
-                            _saving ? null : () => _save(sendToClient: true),
+                            (_saving || _uploading) ? null : () => _save(sendToClient: true),
                         icon: _saving
                             ? const SizedBox(
                                 width: 18,
@@ -348,7 +365,7 @@ class _ProntuarioFormViewState extends State<ProntuarioFormView> {
                       ),
                       const SizedBox(height: 8),
                       OutlinedButton.icon(
-                        onPressed: _saving
+                        onPressed: (_saving || _uploading)
                             ? null
                             : () => _save(sendToClient: false),
                         icon: const Icon(Icons.save_outlined, size: 18),
@@ -368,7 +385,7 @@ class _ProntuarioFormViewState extends State<ProntuarioFormView> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ElevatedButton.icon(
-                        onPressed: _saving
+                        onPressed: (_saving || _uploading)
                             ? null
                             : () => _save(sendToClient: true),
                         icon: _saving
@@ -391,7 +408,7 @@ class _ProntuarioFormViewState extends State<ProntuarioFormView> {
                       ),
                       const SizedBox(height: 8),
                       OutlinedButton.icon(
-                        onPressed: _saving
+                        onPressed: (_saving || _uploading)
                             ? null
                             : () => _save(sendToClient: false),
                         icon: const Icon(Icons.save_outlined, size: 18),
@@ -414,13 +431,20 @@ class _ProntuarioFormViewState extends State<ProntuarioFormView> {
     );
   }
 
+  Widget _anexosField() => AttachmentsField(
+        apptId: appt['id'] as String,
+        items: _anexos,
+        onChanged: () => setState(() {}),
+        onBusyChanged: (b) => setState(() => _uploading = b),
+      );
+
   Future<void> _save({required bool sendToClient}) async {
     setState(() => _saving = true);
     final ctrl = Get.find<HomeController>();
     try {
       if (_mode == 'complement') {
         final texto = _complementoCtrl.text.trim();
-        if (texto.isEmpty) {
+        if (texto.isEmpty && _anexos.isEmpty) {
           setState(() => _saving = false);
           return;
         }
@@ -432,6 +456,7 @@ class _ProntuarioFormViewState extends State<ProntuarioFormView> {
             {
               'texto': texto,
               'addedAt': DateTime.now().toIso8601String(),
+              if (_anexos.isNotEmpty) 'anexos': _anexos,
             }
           ]),
           if (sendToClient) 'sentToClient': true,
@@ -463,6 +488,7 @@ class _ProntuarioFormViewState extends State<ProntuarioFormView> {
                 })
             .toList(),
         'observacoes': _obsCtrl.text.trim(),
+        'anexos': _anexos,
         'savedAt': FieldValue.serverTimestamp(),
         if (_mode == 'edit') 'editedAt': FieldValue.serverTimestamp(),
       };

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/app_theme.dart';
+import 'attachments_field.dart';
 import 'home_controller.dart';
 
 class AppointmentDetailView extends StatefulWidget {
@@ -1046,6 +1047,14 @@ class _AppointmentDetailViewState extends State<AppointmentDetailView> {
                               color: AppColors.textDark,
                               height: 1.6)),
                     ],
+                    if ((p['anexos'] as List?)?.isNotEmpty == true) ...[
+                      const SizedBox(height: 16),
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      _ProSheetTitle('Anexos', Icons.attach_file_rounded, AppColors.primary),
+                      const SizedBox(height: 8),
+                      AnexosLinks(items: p['anexos'] as List),
+                    ],
                     if (_complementos.isNotEmpty) ...[
                       const SizedBox(height: 16),
                       const Divider(),
@@ -1065,12 +1074,22 @@ class _AppointmentDetailViewState extends State<AppointmentDetailView> {
                                   color: const Color(0xFF8B5CF6)
                                       .withValues(alpha: 0.2)),
                             ),
-                            child: Text(
-                                c['texto']?.toString() ?? '',
-                                style: const TextStyle(
-                                    fontSize: 13,
-                                    color: AppColors.textDark,
-                                    height: 1.5)),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if ((c['texto']?.toString() ?? '').isNotEmpty)
+                                  Text(c['texto'].toString(),
+                                      style: const TextStyle(
+                                          fontSize: 13,
+                                          color: AppColors.textDark,
+                                          height: 1.5)),
+                                if ((c['anexos'] as List?)?.isNotEmpty == true) ...[
+                                  if ((c['texto']?.toString() ?? '').isNotEmpty)
+                                    const SizedBox(height: 8),
+                                  AnexosLinks(items: c['anexos'] as List),
+                                ],
+                              ],
+                            ),
                           )),
                     ],
                     const SizedBox(height: 20),
