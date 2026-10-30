@@ -38,9 +38,11 @@
 			</dict>
 		</array>
 		<key>NSCameraUsageDescription</key>
-		<string>Usamos a câmera para você tirar sua foto de perfil e fotografar seus documentos (RG/CNH e CRMV) para a verificação do cadastro.</string>
+		<string>Usamos a câmera para você tirar sua foto de perfil, fotografar seus documentos (RG/CNH e CRMV) para a verificação do cadastro e anexar fotos (receita, exame) ao prontuário da consulta.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
-		<string>Usamos a galeria para você escolher sua foto de perfil e enviar fotos dos seus documentos (RG/CNH e CRMV) para a verificação do cadastro.</string>
+		<string>Usamos a galeria para você escolher sua foto de perfil, enviar fotos dos seus documentos (RG/CNH e CRMV) para a verificação do cadastro e anexar fotos (receita, exame) ao prontuário da consulta.</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>O VetVem Pro não usa a sua localização. Este aviso é exigido por uma biblioteca de seleção de fotos e arquivos usada para anexar documentos ao prontuário.</string>
 		<key>UIApplicationSceneManifest</key>
 		<dict>
 			<key>UIApplicationSupportsMultipleScenes</key>
