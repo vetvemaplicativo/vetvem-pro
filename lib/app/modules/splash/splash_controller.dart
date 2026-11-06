@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import '../../routes/app_routes.dart';
+import '../../services/profile_gate.dart';
 import '../terms/terms_view.dart';
 
 class SplashController extends GetxController {
@@ -19,6 +20,10 @@ class SplashController extends GetxController {
     }
     // Sessão persistida: garante o aceite dos termos antes da home
     final ok = await TermsView.ensureAccepted();
-    Get.offAllNamed(ok ? Routes.home : Routes.login);
+    if (ok) {
+      await ProfileGate.goNext();
+    } else {
+      Get.offAllNamed(Routes.login);
+    }
   }
 }

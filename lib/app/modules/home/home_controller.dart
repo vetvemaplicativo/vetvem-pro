@@ -968,6 +968,15 @@ class HomeController extends GetxController {
 
   void changeTab(int index) => currentTab.value = index;
 
+  // Abre o Perfil já rolado até a seção Documentos (botão do banner de status).
+  final docsFocus = 0.obs;
+  bool docsFocusPending = false;
+  void openDocuments() {
+    docsFocusPending = true;
+    docsFocus.value++;
+    changeTab(4);
+  }
+
   Future<void> confirmAppointment(String id) async {
     final doc = await _firestore.collection('appointments').doc(id).get();
     final d = doc.data() ?? {};

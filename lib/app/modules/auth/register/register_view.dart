@@ -31,7 +31,7 @@ class RegisterView extends GetView<RegisterController> {
                           color: Colors.white, size: 20),
                       onPressed: () => c.currentStep.value > 0
                           ? c.prevStep()
-                          : Get.back(),
+                          : (c.isSocial.value ? c.cancelSocial() : Get.back()),
                     ),
                     const SizedBox(height: 4),
                     Padding(
@@ -127,18 +127,21 @@ class _Step1 extends StatelessWidget {
               keyboard: TextInputType.number,
               formatters: [_MaskFormatter('999.999.999-99')]),
           const SizedBox(height: 14),
-          _Field(ctrl: c.emailCtrl, label: 'E-mail *',
-              hint: 'seu@email.com', icon: Icons.email_outlined,
-              keyboard: TextInputType.emailAddress),
-          const SizedBox(height: 14),
+          if (!c.isSocial.value) ...[
+            _Field(ctrl: c.emailCtrl, label: 'E-mail *',
+                hint: 'seu@email.com', icon: Icons.email_outlined,
+                keyboard: TextInputType.emailAddress),
+            const SizedBox(height: 14),
+          ],
           _Field(
               ctrl: c.phoneCtrl,
-              label: 'Celular',
+              label: 'Celular (WhatsApp) *',
               hint: '(21) 9 9999-9999',
               icon: Icons.phone_outlined,
               keyboard: TextInputType.phone,
               formatters: [_MaskFormatter('(99) 9 9999-9999')]),
           const SizedBox(height: 14),
+          if (!c.isSocial.value)
           Obx(() => _Field(
                 ctrl: c.passwordCtrl,
                 label: 'Senha *',
@@ -757,6 +760,7 @@ class _Step5 extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
 
+          if (!c.isSocial.value) ...[
           const SizedBox(height: 28),
 
           // ─── Termos de Uso ───────────────────────────────────────
@@ -824,6 +828,7 @@ class _Step5 extends StatelessWidget {
                   ],
                 ),
               )),
+          ],
         ],
       ),
     );

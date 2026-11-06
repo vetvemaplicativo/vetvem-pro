@@ -8,11 +8,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
-import '../../../routes/app_routes.dart';
 import '../../../services/analytics_service.dart';
 import '../../../services/password_reset_service.dart';
 import '../../../theme/app_theme.dart';
 import '../../terms/terms_view.dart';
+import '../../../services/profile_gate.dart';
 
 class LoginController extends GetxController {
   final _firebase = FirebaseAuth.instance;
@@ -55,7 +55,7 @@ class LoginController extends GetxController {
         return;
       }
       _analytics.logLogin('email');
-      Get.offAllNamed(Routes.home);
+      await ProfileGate.goNext();
     } on FirebaseAuthException catch (e) {
       _snackError(_mapError(e));
     } catch (_) {
@@ -201,7 +201,7 @@ class LoginController extends GetxController {
       }
 
       _analytics.logLogin('google');
-      Get.offAllNamed(Routes.home);
+      await ProfileGate.goNext();
     } catch (_) {
       _snackError('Não foi possível entrar com Google. Tente novamente.');
     } finally {
@@ -282,7 +282,7 @@ class LoginController extends GetxController {
       }
 
       _analytics.logLogin('apple');
-      Get.offAllNamed(Routes.home);
+      await ProfileGate.goNext();
     } on SignInWithAppleAuthorizationException catch (e) {
       if (e.code != AuthorizationErrorCode.canceled) {
         _snackError('Não foi possível entrar com Apple. Tente novamente.');

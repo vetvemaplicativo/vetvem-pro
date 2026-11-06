@@ -248,8 +248,9 @@ class _InicioTab extends GetView<HomeController> {
                     return _StatusBanner(
                       status: status,
                       missingDocs: controller.docsLoaded.value && controller.missingDocs,
+                      docs: Map<String, String>.from(controller.docStatuses),
                       rejectionReason: controller.rejectionReason.value,
-                      onSendDocs: () => controller.changeTab(4),
+                      onSendDocs: controller.openDocuments,
                     );
                   }),
                   const SizedBox(height: 24),
@@ -856,89 +857,181 @@ class _ProfileStatusBadge extends StatelessWidget {
 class _StatusBanner extends StatelessWidget {
   final String status;
   final bool missingDocs;
+  final Map<String, String> docs;
   final String rejectionReason;
   final VoidCallback onSendDocs;
   const _StatusBanner({
     required this.status,
     required this.missingDocs,
+    this.docs = const {},
     this.rejectionReason = '',
     required this.onSendDocs,
   });
 
+  static const _docLabels = {'rg': 'RG / CNH', 'crmv': 'CRMV'};
+
+  // (texto, cor, ícone) do estado de cada documento
+  (String, Color, IconData) _docState(String type) {
+    switch (docs[type]) {
+      case 'approved':
+        return ('Aprovado', const Color(0xFF16A34A), Icons.check_circle_rounded);
+      case 'rejected':
+        return ('Recusado', const Color(0xFFDC2626), Icons.cancel_rounded);
+      case 'submitted':
+        return ('Em análise', const Color(0xFFD97706), Icons.hourglass_top_rounded);
+      default:
+        return ('Não enviado', const Color(0xFFDC2626), Icons.upload_file_rounded);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isRejected = status == 'rejected';
-    final isSuspended = status == 'suspended' || isRejected;
+    final isSuspended = status == 'suspended';
+    final hasRejectedDoc = docs.values.any((s) => s == 'rejected');
+    final needsAction = isRejected || (missingDocs && !isSuspended);
+
+    final Color accent = (isRejected || isSuspended || hasRejectedDoc)
+        ? const Color(0xFFDC2626)
+        : needsAction
+            ? const Color(0xFFEA580C)
+            : const Color(0xFFD97706);
+    final Color bg = (isRejected || isSuspended || hasRejectedDoc)
+        ? const Color(0xFFFEF2F2)
+        : const Color(0xFFFFF7ED);
+
+    final String title = isRejected
+        ? 'Cadastro não aprovado'
+        : isSuspended
+            ? 'Conta suspensa'
+            : hasRejectedDoc
+                ? 'Documento recusado'
+                : missingDocs
+                    ? 'Faltam seus documentos'
+                    : 'Conta em análise';
+    final String text = isRejected
+        ? (rejectionReason.isNotEmpty
+            ? 'Motivo: $rejectionReason Corrija e reenvie seus documentos para uma nova análise.'
+            : 'Confira seus documentos e reenvie para uma nova análise.')
+        : isSuspended
+            ? 'Entre em contato com o suporte para reativar.'
+            : hasRejectedDoc
+                ? 'Um dos documentos não foi aceito. Reenvie uma foto nítida e legível para liberarmos sua conta.'
+                : missingDocs
+                    ? 'Sem eles não conseguimos liberar sua conta para receber atendimentos. Envie agora o RG/CNH e o CRMV.'
+                    : 'Estamos verificando seus documentos. Em até 24h sua conta será ativada.';
+    final String buttonLabel = isRejected
+        ? 'Corrigir e reenviar'
+        : hasRejectedDoc
+            ? 'Reenviar documento'
+            : 'Enviar documentos';
+    final IconData icon = (isRejected || isSuspended)
+        ? Icons.block_rounded
+        : needsAction
+            ? Icons.error_outline_rounded
+            : Icons.hourglass_top_rounded;
+
     return Container(
+      width: double.infinity,
       margin: const EdgeInsets.only(bottom: 4),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isSuspended
-            ? const Color(0xFFFEE2E2)
-            : const Color(0xFFFEF3C7),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isSuspended
-              ? const Color(0xFFF87171).withValues(alpha: 0.5)
-              : const Color(0xFFFBBF24).withValues(alpha: 0.5),
-        ),
+        color: bg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accent.withValues(alpha: needsAction ? 0.55 : 0.35), width: needsAction ? 1.5 : 1),
+        boxShadow: needsAction
+            ? [BoxShadow(color: accent.withValues(alpha: 0.12), blurRadius: 14, offset: const Offset(0, 5))]
+            : null,
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            isSuspended
-                ? Icons.block_rounded
-                : Icons.hourglass_top_rounded,
-            color: isSuspended
-                ? const Color(0xFFDC2626)
-                : const Color(0xFFD97706),
-            size: 20,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.14),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: accent, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: accent)),
+                    const SizedBox(height: 3),
+                    Text(text,
+                        style: const TextStyle(
+                            fontSize: 12.5,
+                            height: 1.4,
+                            color: Color(0xFF4B5563))),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          if (needsAction && !isSuspended) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Text(
-                  isRejected
-                      ? 'Cadastro não aprovado'
-                      : isSuspended
-                      ? 'Conta suspensa'
-                      : (missingDocs ? 'Faltam seus documentos' : 'Conta em análise'),
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: isSuspended
-                          ? const Color(0xFF991B1B)
-                          : const Color(0xFF92400E)),
-                ),
-                Text(
-                  isRejected
-                      ? (rejectionReason.isNotEmpty
-                          ? 'Motivo: $rejectionReason Corrija e reenvie seus documentos para uma nova análise.'
-                          : 'Confira seus documentos e reenvie para uma nova análise.')
-                      : isSuspended
-                      ? 'Entre em contato com o suporte para reativar.'
-                      : (missingDocs
-                          ? 'Envie o RG/CNH e o CRMV para liberarmos sua conta.'
-                          : 'Estamos verificando seus documentos. Em até 24h sua conta será ativada.'),
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: isSuspended
-                          ? const Color(0xFFB91C1C)
-                          : const Color(0xFFB45309)),
-                ),
+                for (final t in _docLabels.keys)
+                  Builder(builder: (_) {
+                    final (label, color, ic) = _docState(t);
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: color.withValues(alpha: 0.4)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(ic, size: 14, color: color),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text('${_docLabels[t]}: $label',
+                                style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: color)),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
               ],
             ),
-          ),
-          if (isRejected || (missingDocs && !isSuspended))
-            TextButton(
-              onPressed: onSendDocs,
-              child: Text(isRejected ? 'Reenviar' : 'Enviar',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF92400E))),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: onSendDocs,
+                icon: const Icon(Icons.upload_file_rounded, size: 20),
+                label: Text(buttonLabel,
+                    style: const TextStyle(
+                        fontSize: 14.5, fontWeight: FontWeight.w700)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accent,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
             ),
+          ],
         ],
       ),
     );
@@ -3042,6 +3135,37 @@ class _PerfilTab extends StatefulWidget {
 }
 
 class _PerfilTabState extends State<_PerfilTab> {
+  final _docsKey = GlobalKey();
+  Worker? _docsWorker;
+
+  void _scrollToDocsIfRequested() {
+    final c = Get.find<HomeController>();
+    if (!c.docsFocusPending) return;
+    final ctx = _docsKey.currentContext;
+    if (ctx == null) return;
+    c.docsFocusPending = false;
+    Scrollable.ensureVisible(ctx,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeOutCubic,
+        alignment: 0.05);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final c = Get.find<HomeController>();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToDocsIfRequested());
+    _docsWorker = ever(c.docsFocus, (_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToDocsIfRequested());
+    });
+  }
+
+  @override
+  void dispose() {
+    _docsWorker?.dispose();
+    super.dispose();
+  }
+
   void _showEditProfileSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -3376,7 +3500,7 @@ class _PerfilTabState extends State<_PerfilTab> {
             Obx(() {
               final c = Get.find<HomeController>();
               final statuses = c.docStatuses;
-              return _InfoCard(
+              return KeyedSubtree(key: _docsKey, child: _InfoCard(
                 title: 'Documentos',
                 child: Column(
                   children: [
@@ -3394,7 +3518,7 @@ class _PerfilTabState extends State<_PerfilTab> {
                     ),
                   ],
                 ),
-              );
+              ));
             }),
             const SizedBox(height: 14),
 

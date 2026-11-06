@@ -23,6 +23,26 @@ class RegisterController extends GetxController {
   final passwordCtrl = TextEditingController();
   final obscure      = true.obs;
 
+  // Modo "social": a conta já existe (Google/Apple); o cadastro em passos só completa o perfil.
+  final isSocial = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    final user = FirebaseAuth.instance.currentUser;
+    if (Get.arguments is Map && (Get.arguments as Map)['social'] == true && user != null) {
+      isSocial.value = true;
+      nameCtrl.text = user.displayName ?? '';
+      emailCtrl.text = user.email ?? '';
+    }
+  }
+
+  /// Desiste do cadastro em modo social: sai da conta e volta ao login.
+  Future<void> cancelSocial() async {
+    try { await FirebaseAuth.instance.signOut(); } catch (_) {}
+    Get.offAllNamed(Routes.login);
+  }
+
   // Step 2 — Dados profissionais (multi-categoria)
   final selectedCategories = <String>{}.obs;
   final selectedSpecies    = <String>{}.obs;
@@ -234,9 +254,18 @@ class RegisterController extends GetxController {
   bool _validateStep() {
     switch (currentStep.value) {
       case 0:
-        if (nameCtrl.text.trim().isEmpty || emailCtrl.text.trim().isEmpty ||
-            passwordCtrl.text.isEmpty) {
+        if (nameCtrl.text.trim().isEmpty ||
+            (!isSocial.value && (emailCtrl.text.trim().isEmpty || passwordCtrl.text.isEmpty))) {
           _warn('Preencha todos os campos obrigatórios');
+          return false;
+        }
+        if (!isValidCpf(cpfCtrl.text)) {
+          _warn('Informe um CPF válido');
+          return false;
+        }
+        // Celular (WhatsApp) obrigatório: o suporte e o tutor precisam falar com o profissional.
+        if (phoneCtrl.text.replaceAll(RegExp(r'\D'), '').length < 10) {
+          _warn('Informe seu celular com DDD');
           return false;
         }
       case 1:
@@ -259,7 +288,7 @@ class RegisterController extends GetxController {
           _warn('Envie a foto do RG/CNH e do CRMV para continuar');
           return false;
         }
-        if (!termsAccepted.value) {
+        if (!isSocial.value && !termsAccepted.value) {
           _warn('Aceite os Termos de Uso para continuar');
           return false;
         }
@@ -311,7 +340,91 @@ class RegisterController extends GetxController {
     );
   }
 
+  /// CPF válido: 11 dígitos, não repetidos, com os 2 dígitos verificadores corretos.
+  static bool isValidCpf(String raw) {
+    final d = raw.replaceAll(RegExp(r'\D'), '');
+    if (d.length != 11 || RegExp(r'^(\d)\1{10}$').hasMatch(d)) return false;
+    int check(int len) {
+      var sum = 0;
+      for (var i = 0; i < len; i++) {
+        sum += int.parse(d[i]) * (len + 1 - i);
+      }
+      final r = (sum * 10) % 11;
+      return r == 10 ? 0 : r;
+    }
+    return check(9) == int.parse(d[9]) && check(10) == int.parse(d[10]);
+  }
+
+  Map<String, dynamic> _profileFields() => {
+        'name': nameCtrl.text.trim(),
+        'email': emailCtrl.text.trim(),
+        'role': 'professional',
+        'phone': phoneCtrl.text.trim(),
+        'cpf': cpfCtrl.text.trim(),
+        'crmv': crmvCtrl.text.trim(),
+        'bio': bioCtrl.text.trim(),
+        'categories': selectedCategories.toList(),
+        'services': services.map((s) => {
+          'name': s['name'],
+          'price': s['price'],
+          'unit': s['unit'],
+        }).toList(),
+        'availableDays': selectedDays.toList(),
+        'availableTimes': availableTimes.toList(),
+        'animalSpecies': selectedSpecies.toList(),
+        'pixKeys': pixKeyCtrl.text.trim().isNotEmpty
+            ? [{'type': pixKeyType.value, 'key': pixKeyCtrl.text.trim()}]
+            : [],
+        'accountStatus': 'pending',
+        'platform': Platform.isIOS ? 'ios' : 'android',
+        // Google/Apple já aceitaram os termos na tela cheia do login (não regrava a data).
+        if (!isSocial.value) ...{
+          'termos_aceitos': true,
+          'termos_aceitos_em': FieldValue.serverTimestamp(),
+          'termos_versao': termsVersion,
+        },
+      };
+
+  /// Conta Google/Apple já existe: grava o perfil completo nela (sem criar login, sem mexer em createdAt).
+  Future<void> _submitSocial() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      isSubmitting.value = false;
+      Get.offAllNamed(Routes.login);
+      return;
+    }
+    try {
+      await FirebaseFirestore.instance
+          .collection('users').doc(user.uid)
+          .set(_profileFields(), SetOptions(merge: true));
+      for (final entry in _docImages.entries) {
+        try {
+          await FirebaseFirestore.instance
+              .collection('users').doc(user.uid)
+              .collection('documents').doc(entry.key)
+              .set({
+            'image': entry.value,
+            'status': 'submitted',
+            'sentAt': FieldValue.serverTimestamp(),
+          });
+        } catch (_) {}
+      }
+      Get.offAllNamed(Routes.home, arguments: {'services': services.toList()});
+      Get.toNamed(Routes.serviceArea);
+    } catch (_) {
+      _snack(
+        title: 'Erro ao salvar cadastro',
+        message: 'Não foi possível concluir. Verifique sua internet e tente novamente.',
+        icon: Icons.wifi_off_rounded,
+        color: const Color(0xFFEA4335),
+      );
+    } finally {
+      isSubmitting.value = false;
+    }
+  }
+
   Future<void> _submit() async {
+    if (isSocial.value) return _submitSocial();
     UserCredential? credential;
     try {
       credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
@@ -343,29 +456,7 @@ class RegisterController extends GetxController {
       await credential.user?.updateDisplayName(nameCtrl.text.trim());
       // Salva perfil do profissional no Firestore
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'name': nameCtrl.text.trim(),
-        'email': emailCtrl.text.trim(),
-        'role': 'professional',
-        'phone': phoneCtrl.text.trim(),
-        'crmv': crmvCtrl.text.trim(),
-        'bio': bioCtrl.text.trim(),
-        'categories': selectedCategories.toList(),
-        'services': services.map((s) => {
-          'name': s['name'],
-          'price': s['price'],
-          'unit': s['unit'],
-        }).toList(),
-        'availableDays': selectedDays.toList(),
-        'availableTimes': availableTimes.toList(),
-        'animalSpecies': selectedSpecies.toList(),
-        'pixKeys': pixKeyCtrl.text.trim().isNotEmpty
-            ? [{'type': pixKeyType.value, 'key': pixKeyCtrl.text.trim()}]
-            : [],
-        'accountStatus': 'pending',
-        'platform': Platform.isIOS ? 'ios' : 'android',
-        'termos_aceitos': true,
-        'termos_aceitos_em': FieldValue.serverTimestamp(),
-        'termos_versao': termsVersion,
+        ..._profileFields(),
         'createdAt': FieldValue.serverTimestamp(),
       });
       // Documentos anexados no cadastro. Falha aqui não desfaz a conta: o
