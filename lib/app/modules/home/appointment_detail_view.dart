@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/app_theme.dart';
 import 'attachments_field.dart';
+import 'extras_section.dart';
 import 'home_controller.dart';
 
 class AppointmentDetailView extends StatefulWidget {
@@ -670,6 +671,12 @@ class _AppointmentDetailViewState extends State<AppointmentDetailView> {
                       ),
                     );
                   }),
+
+                  // Adicionais (procedimentos extras cobrados num único PIX no fim)
+                  if ((isConfirmed || isCompleted) && (appt['id'] ?? '').isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    ExtrasSection(appointmentId: appt['id']!),
+                  ],
 
                   const SizedBox(height: 32),
                 ],

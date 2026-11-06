@@ -1,10 +1,10 @@
 /// Versão dos termos vigentes — incremente ao alterar o texto.
-const termsVersion = '2.0';
+const termsVersion = '2.1';
 
-/// RASCUNHO — revisar com advogado antes do lançamento oficial.
+/// Texto vigente dos Termos de Uso e Política de Privacidade (revisado por advogado).
 const termsText = '''
 TERMOS DE USO E POLÍTICA DE PRIVACIDADE — VETVEM PRO (PROFISSIONAL)
-Versão 2.0 · Outubro de 2026
+Versão 2.1 · Novembro de 2026
 
 1. SOBRE A PLATAFORMA
 
@@ -47,6 +47,8 @@ Versão 2.0 · Outubro de 2026
 5.4. Valores exibidos como "a receber" são estimativas até a efetivação do repasse.
 
 5.5. Você é responsável pelos seus tributos como profissional autônomo (ISS, IR, INSS e demais aplicáveis), inclusive pela emissão de documentos fiscais quando exigido.
+
+5.6. ADICIONAIS. Durante ou logo após a consulta, você pode lançar no aplicativo procedimentos adicionais combinados diretamente com o tutor (por exemplo, curativo, medicação ou vacina) e gerar um único QR PIX com o total. O tutor autoriza cada procedimento na conversa com você, e não no aplicativo; por isso, você é o ÚNICO responsável por informar o valor e obter a concordância do tutor ANTES de lançar o adicional, e só deve lançar o que o tutor autorizou e que foi efetivamente realizado. Os adicionais pagos ficam visíveis ao tutor e à equipe VetVem. A taxa de serviço do item 5.2 incide também sobre os adicionais, que são repassados em até 2 (dois) dias úteis após o pagamento, via PIX. O lançamento de adicionais é possível durante a consulta e por até 2 (duas) horas após a sua conclusão; depois disso, apenas pelo suporte. Adicionais que você combinar ou receber por fora da plataforma (dinheiro, PIX direto ou outro meio) são de sua inteira responsabilidade: o VetVem não os reembolsa, não os intermedeia e não responde por eventuais disputas sobre valores recebidos dessa forma. O lançamento de adicionais sem a autorização do tutor pode levar ao estorno do valor ao tutor e à suspensão da conta.
 
 6. AVALIAÇÕES E CONDUTA
 
