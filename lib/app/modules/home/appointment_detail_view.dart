@@ -106,7 +106,7 @@ class _AppointmentDetailViewState extends State<AppointmentDetailView> {
         data?['proposalStatus'] != 'awaiting_tutor') {
       // Countdown real a partir do createdAt do servidor.
       // Mesmo prazo do servidor (expireUnanswered): responseDeadline (pedido
-      // redirecionado) ou 2h a partir do pagamento aprovado.
+      // redirecionado) ou 3h a partir do pagamento aprovado.
       final paidAt = data?['paymentStatus'] == 'approved'
           ? (data?['paymentUpdatedAt'] as Timestamp?)?.toDate()
           : null;
@@ -115,7 +115,7 @@ class _AppointmentDetailViewState extends State<AppointmentDetailView> {
       if (respMs != null || created != null) {
         final left = respMs != null
             ? Duration(milliseconds: respMs - DateTime.now().millisecondsSinceEpoch)
-            : const Duration(minutes: 120) - DateTime.now().difference(created!);
+            : const Duration(minutes: 180) - DateTime.now().difference(created!);
         if (left.inSeconds <= 0) {
           if (mounted) setState(() => _expired = true);
         } else {
