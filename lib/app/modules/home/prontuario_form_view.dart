@@ -1,3 +1,4 @@
+import '../calc/dose_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -302,6 +303,10 @@ class _ProntuarioFormViewState extends State<ProntuarioFormView> {
                         med: e.value,
                         onRemove: () =>
                             setState(() => _medicamentos.removeAt(e.key)),
+                        // A calculadora devolve o peso em kg: só preenche se ainda estiver vazio.
+                        onWeight: (kg) {
+                          if (_pesoCtrl.text.trim().isEmpty) _pesoCtrl.text = kg;
+                        },
                       )),
                   const SizedBox(height: 24),
 
@@ -618,8 +623,9 @@ class _VacinaFormState extends State<_VacinaForm> {
 class _MedicamentoForm extends StatefulWidget {
   final _Medicamento med;
   final VoidCallback onRemove;
+  final void Function(String kg)? onWeight;
   const _MedicamentoForm(
-      {super.key, required this.med, required this.onRemove});
+      {super.key, required this.med, required this.onRemove, this.onWeight});
 
   @override
   State<_MedicamentoForm> createState() => _MedicamentoFormState();
@@ -638,6 +644,17 @@ class _MedicamentoFormState extends State<_MedicamentoForm> {
     _dosagemCtrl = TextEditingController(text: widget.med.dosagem);
     _freqCtrl = TextEditingController(text: widget.med.frequencia);
     _durCtrl = TextEditingController(text: widget.med.duracao);
+  }
+
+  /// Abre o VetVem Calc; o texto devolvido vai para a dosagem (continua editável) e o peso, se vazio.
+  Future<void> _calcDose() async {
+    final r = await Get.to<CalcRecordResult>(() => const DosePage(pickMode: true));
+    if (r == null || !mounted) return;
+    setState(() {
+      _dosagemCtrl.text = r.dosagem;
+      widget.med.dosagem = r.dosagem;
+    });
+    widget.onWeight?.call(r.pesoKg);
   }
 
   @override
@@ -714,6 +731,14 @@ class _MedicamentoFormState extends State<_MedicamentoForm> {
             onChanged: (v) => widget.med.duracao = v,
             decoration:
                 const InputDecoration(hintText: 'Duração (ex: 10 dias)'),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _calcDose,
+              icon: const Icon(Icons.calculate_outlined, size: 18),
+              label: const Text('Calcular dose'),
+            ),
           ),
         ],
       ),

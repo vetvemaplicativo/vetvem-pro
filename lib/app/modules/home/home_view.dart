@@ -11,6 +11,7 @@ import '../../services/taxonomy_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/shimmer.dart';
 import '../auth/register/register_controller.dart' show RegisterController;
+import '../calc/calc_home_view.dart';
 import 'home_controller.dart';
 import 'profile_extras.dart';
 import 'service_sheet.dart';
@@ -237,6 +238,8 @@ class _InicioTab extends GetView<HomeController> {
                               ))),
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  const CalcEntryCard(),
                   // Banner de status da conta
                   Obx(() {
                     final status = controller.accountStatus.value;
