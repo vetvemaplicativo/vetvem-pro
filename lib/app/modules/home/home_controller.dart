@@ -625,9 +625,13 @@ class HomeController extends GetxController {
   }
 
   void _listenAppointments() {
+    // Filtra pelo UID (vetId), não pelo nome: as regras do Firestore (fase 3) só deixam o
+    // profissional ler os pedidos em que vetId == o próprio uid.
+    final myUid0 = _auth.currentUser?.uid;
+    if (myUid0 == null) return;
     _firestore
         .collection('appointments')
-        .where('vetName', isEqualTo: _auth.currentUser?.displayName ?? '')
+        .where('vetId', isEqualTo: myUid0)
         .snapshots()
         .listen((snap) {
       // O tutor paga já ao solicitar: enquanto o pagamento não for aprovado,

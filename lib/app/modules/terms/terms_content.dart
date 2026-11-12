@@ -32,7 +32,7 @@ Versão 2.1 · Novembro de 2026
 
 4. AGENDAMENTOS E PRAZO DE RESPOSTA
 
-4.1. O tutor paga no momento da solicitação, e você só recebe a solicitação depois da aprovação do pagamento. Você pode confirmá-la ou recusá-la em até 1 (uma) hora e, em qualquer caso, antes do horário marcado. Se você recusar ou não responder nesse prazo, a solicitação é encerrada e o valor é estornado automaticamente ao tutor.
+4.1. O tutor paga no momento da solicitação, e você só recebe a solicitação depois da aprovação do pagamento. Você pode confirmá-la ou recusá-la em até 3 (três) horas e, em qualquer caso, antes do horário marcado. Se você recusar ou não responder nesse prazo, a solicitação é encerrada e o valor é estornado automaticamente ao tutor.
 
 4.2. Somente consultas pagas pelo aplicativo são garantidas. É PROIBIDO combinar ou receber pagamentos por fora da plataforma para serviços originados nela — a prática viola estes Termos e leva à suspensão da conta.
 
